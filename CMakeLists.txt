@@ -8,12 +8,25 @@ if( NOT CMAKE_BUILD_TYPE )
 endif()
 
 find_package(Boost)
+# test pcl
+find_package(PCL REQUIRED COMPONENTS common io filters)
+FIND_PACKAGE( PCL REQUIRED COMPONENTS common io visualization )
+find_package(eigen)
+include_directories(
+  ${PCL_INCLUDE_DIRS}
+)
 
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
-  ADD_EXECUTABLE(example1 examples/example1.cpp)
-  ADD_EXECUTABLE(example2 examples/example2.cpp)
-  ADD_EXECUTABLE(example3 examples/example3.cpp)
+#  ADD_EXECUTABLE(example1 examples/example1.cpp)
+#  ADD_EXECUTABLE(example2 examples/example2.cpp)
+#  ADD_EXECUTABLE(example3 examples/example3.cpp)
+  ADD_EXECUTABLE(testpcl examples/testpcl.cpp)
+
+  # test pcl
+ target_link_libraries(testpcl
+    ${PCL_LIBRARIES}
+  )
 endif()
 
 # find gtest ...
@@ -32,11 +45,11 @@ ELSE()
 ENDIF()
 
 # build gtests if possible
-IF(GTEST_FOUND)
-  MESSAGE("Building tests with google test framework")
-	ENABLE_TESTING()
-	INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIRS})
-	ADD_EXECUTABLE(octree-test test/octree-test.cpp)
-	TARGET_LINK_LIBRARIES(octree-test ${GTEST_MAIN_LIBRARIES})
-	ADD_TEST(octree-test octree-test)
-ENDIF()
+#IF(GTEST_FOUND)
+#  MESSAGE("Building tests with google test framework")
+#	ENABLE_TESTING()
+#	INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIRS})
+#	ADD_EXECUTABLE(octree-test test/octree-test.cpp)
+#	TARGET_LINK_LIBRARIES(octree-test ${GTEST_MAIN_LIBRARIES})
+#	ADD_TEST(octree-test octree-test)
+#ENDIF()

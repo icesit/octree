@@ -27,6 +27,8 @@
 #include <cstring>  // memset.
 #include <limits>
 #include <vector>
+#include <Eigen/StdVector>
+#include <Eigen/Geometry>
 
 // needed for gtest access to protected/private members ...
 namespace
@@ -226,7 +228,7 @@ struct OctreeParams
  * \author behley
  */
 
-template <typename PointT, typename ContainerT = std::vector<PointT> >
+template <typename PointT, typename ContainerT = std::vector<PointT, Eigen::aligned_allocator<PointT> > >
 class Octree
 {
  public:
