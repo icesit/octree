@@ -255,6 +255,12 @@ class Octree
   void radiusNeighbors(const PointT& query, float radius, std::vector<uint32_t>& resultIndices,
                        std::vector<float>& distances) const;
 
+  ///return centers of blocks with points
+  template <typename Distance>
+  void radiusNeighborsBlock(const PointT& query, float radius,
+                            std::vector<float_t*>& resultIndices) const;
+
+
   /** \brief nearest neighbor queries. Using minDistance >= 0, we explicitly disallow self-matches.
    * @return index of nearest neighbor n with Distance::compute(query, n) > minDistance and otherwise -1.
    **/
@@ -312,6 +318,11 @@ class Octree
   template <typename Distance>
   void radiusNeighbors(const Octant* octant, const PointT& query, float radius, float sqrRadius,
                        std::vector<uint32_t>& resultIndices, std::vector<float>& distances) const;
+
+  template <typename Distance>
+  void radiusNeighborsBlock(const Octant* octant, const PointT& query, float radius, float sqrRadius,
+                       std::vector<float_t*>& resultIndices) const;
+
 
   /** \brief test if search ball S(q,r) overlaps with octant
    *
@@ -680,6 +691,63 @@ void Octree<PointT, ContainerT>::radiusNeighbors(const Octant* octant, const Poi
 
 template <typename PointT, typename ContainerT>
 template <typename Distance>
+void Octree<PointT, ContainerT>::radiusNeighborsBlock(const Octant* octant, const PointT& query, float radius,
+                                                 float sqrRadius, std::vector<float_t*>& resultIndices) const
+{
+  //const ContainerT& points = *data_;
+
+  // if search ball S(q,r) contains octant, simply add point indexes.
+//  if (contains<Distance>(query, sqrRadius, octant))
+//  {
+//    uint32_t idx = octant->start;
+//    for (uint32_t i = 0; i < octant->size; ++i)
+//    {
+//      resultIndices.push_back(idx);
+//      idx = successors_[idx];
+//    }
+
+//    return;  // early pruning.
+//  }
+
+  if (octant->isLeaf && octant->size>0)
+  {
+//    uint32_t idx = octant->start;
+//    for (uint32_t i = 0; i < octant->size; ++i)
+//    {
+//      const PointT& p = points[idx];
+//      float dist = Distance::compute(query, p);
+//      if (dist < sqrRadius) resultIndices.push_back(idx);
+//      idx = successors_[idx];
+//    }
+    PointT p;
+    p.x = octant->x;
+    p.y = octant->y;
+    p.z = octant->z;
+    float dist = Distance::compute(query, p);
+//    std::cout << "block location is ("
+//              << octant->x << "," << octant->y << "," << octant->z << ").extent is"
+//              << octant->extent << std::endl;
+//    std::cout << "dist is " << dist << std::endl;
+    if (dist < sqrRadius)
+    {
+        float_t a[4] = {octant->x, octant->y, octant->z, octant->extent};
+        resultIndices.push_back(a);
+    }
+
+    return;
+  }
+
+  // check whether child nodes are in range.
+  for (uint32_t c = 0; c < 8; ++c)
+  {
+    if (octant->child[c] == 0) continue;
+    if (!overlaps<Distance>(query, radius, sqrRadius, octant->child[c])) continue;
+    radiusNeighborsBlock<Distance>(octant->child[c], query, radius, sqrRadius, resultIndices);
+  }
+}
+
+template <typename PointT, typename ContainerT>
+template <typename Distance>
 void Octree<PointT, ContainerT>::radiusNeighbors(const PointT& query, float radius,
                                                  std::vector<uint32_t>& resultIndices) const
 {
@@ -702,6 +770,18 @@ void Octree<PointT, ContainerT>::radiusNeighbors(const PointT& query, float radi
 
   float sqrRadius = Distance::sqr(radius);  // "squared" radius
   radiusNeighbors<Distance>(root_, query, radius, sqrRadius, resultIndices, distances);
+}
+
+template <typename PointT, typename ContainerT>
+template <typename Distance>
+void Octree<PointT, ContainerT>::radiusNeighborsBlock(const PointT& query, float radius,
+                                                 std::vector<float_t*>& resultIndices) const
+{
+  resultIndices.clear();
+  if (root_ == 0) return;
+
+  float sqrRadius = Distance::sqr(radius);  // "squared" radius
+  radiusNeighborsBlock<Distance>(root_, query, radius, sqrRadius, resultIndices);
 }
 
 template <typename PointT, typename ContainerT>
