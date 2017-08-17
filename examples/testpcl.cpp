@@ -12,7 +12,9 @@
 float start[3] = {-40, 40, -1};
 float end[3] = {40, -40, -1};
 float mid[3] = {(start[0]+end[0])/2, (start[1]+end[1])/2, (start[2]+end[2])/2};
-float halfdist = 0.75 * sqrt(pow(start[0]-end[0],2) + pow(start[1]-end[1],2) + pow(start[2]-end[2],2));
+float halfdist = 0.5 * sqrt(pow(start[0]-end[0],2) + pow(start[1]-end[1],2) + pow(start[2]-end[2],2));
+float startFactor = 0.5;
+float endFactor = 1.5;
 
 //calculate potantial for blocks method
 double calPotantialBlock(pcl::PointXYZRGB& center, std::vector<float_t*> blocks)
@@ -60,20 +62,139 @@ double calPotantial(pcl::PointXYZRGB& center, std::vector<uint32_t>& resultIndic
     }
 
     double z,y,x;
-    mindist = 1 / (1 + 1*exp(sqrt(mindist)-1));
+    mindist = 1 / (1 + 1*exp((sqrt(mindist)-1)/0.5));
     //potential from start
     x = pow(start[0]-center.x,2);
     y = pow(start[1]-center.y,2);
     z = pow(start[2]-center.z,2);
     //using sigmoid
-    mindist += 1 / (1 + exp((sqrt(x+y+z)-halfdist)/20));
+    mindist += 1 / (1 + exp((sqrt(x+y+z)-startFactor*halfdist)/20));
     //potential from end
     x = pow(end[0]-center.x,2);
     y = pow(end[1]-center.y,2);
     z = pow(end[2]-center.z,2);
     //using sigmoid
-    mindist = mindist - 1 / (1 + exp((sqrt(x+y+z)-halfdist)/20));
+    mindist = mindist - 1 / (1 + exp((sqrt(x+y+z)-endFactor*halfdist)/20));
     return mindist;
+}
+
+float calPotenFromCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr poten, int i, int j)
+{
+    float po;
+    po = float(poten->points[i*1001+j].r)/150.0 - float(poten->points[i*1001+j].g)/255.0;
+    return po;
+}
+
+//find a path in potential field
+bool findPath(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& poten, double *po)
+{
+    int curX = start[0]/0.1+500, curY = start[1]/0.1+500;//, curZ = start[2]/0.1;
+    int nextX, nextY;//, nextZ;
+    double curMinPoErr=10, poErr, curPoten;
+    int step = 0;
+//    double po[1000][1000];
+//    for(int i=0; i<500; ++i)
+//    {
+//        for(int j=0; j<500; ++j)
+//        {
+//            po[i][j] = poten->points[i*1000+j];
+//        }
+//    }
+    std::cout << "start potential " << po[1000*curX+curY]
+              << ", end potential " << po[int(1000*(end[0]/0.1+500)+end[1]/0.1+500)] <<std::endl;
+    while(fabs(curX-end[0]/0.1-500)>1.5 || fabs(curY-end[1]/0.1-500)>1.5)// || (curZ-end[2]/0.1)>0.5)
+    {
+        curMinPoErr=0;
+        curPoten = po[1001*curX+curY];
+        //cal poten err,find minimum direction
+        poErr = po[1001*(curX-1)+curY] - curPoten;
+        if(curMinPoErr > poErr)
+        {
+            curMinPoErr = poErr;
+            nextX = curX-1;
+            nextY = curY;
+        }
+        poErr = po[1001*curX+curY-1] - curPoten;
+        if(curMinPoErr > poErr)
+        {
+            curMinPoErr = poErr;
+            nextX = curX;
+            nextY = curY-1;
+        }
+        poErr = po[1001*(curX+1)+curY] - curPoten;
+        if(curMinPoErr > poErr)
+        {
+            curMinPoErr = poErr;
+            nextX = curX+1;
+            nextY = curY;
+        }
+        poErr = po[1001*curX+curY+1] - curPoten;
+        if(curMinPoErr > poErr)
+        {
+            curMinPoErr = poErr;
+            nextX = curX;
+            nextY = curY+1;
+        }
+
+        poErr = (po[1001*(curX-1)+curY+1] - curPoten) / 1.414;
+        if(curMinPoErr > poErr)
+        {
+            curMinPoErr = poErr;
+            nextX = curX-1;
+            nextY = curY+1;
+        }
+        poErr = (po[1001*(curX-1)+curY-1] - curPoten) / 1.414;
+        if(curMinPoErr > poErr)
+        {
+            curMinPoErr = poErr;
+            nextX = curX-1;
+            nextY = curY-1;
+        }
+        poErr = (po[1001*(curX+1)+curY+1] - curPoten) / 1.414;
+        if(curMinPoErr > poErr)
+        {
+            curMinPoErr = poErr;
+            nextX = curX+1;
+            nextY = curY+1;
+        }
+        poErr = (po[1001*(curX+1)+curY-1] - curPoten) / 1.414;
+        if(curMinPoErr > poErr)
+        {
+            curMinPoErr = poErr;
+            nextX = curX+1;
+            nextY = curY-1;
+        }
+
+        if(curMinPoErr < 0)
+        {
+            curX = nextX;
+            curY = nextY;
+            poten->points[curX*1001+curY].b = 255;
+            poten->points[curX*1001+curY].r = 0;
+            poten->points[curX*1001+curY].g = 0;
+            ++step;
+            std::cout << "way point" << float(curX)/10-50 << "," << float(curY)/10-50 << std::endl;
+            std::cout << "cur poten " << curPoten
+                      << ", rest poten " << po[1001*curX+curY+1]
+                      << "," << po[1001*curX+curY-1]
+                      << "," << po[1001*(curX+1)+curY]
+                      << "," << po[1001*(curX-1)+curY] <<std::endl;
+        }
+        else
+        {
+            std::cout << "to local minima!" << std::endl;
+            std::cout << "go " << step << " steps" << std::endl;
+            std::cout << "cur poten " << curPoten
+                      << ", rest poten " << po[1001*curX+curY+1]
+                      << "," << po[1001*curX+curY-1]
+                      << "," << po[1001*(curX+1)+curY]
+                      << "," << po[1001*(curX-1)+curY] <<std::endl;
+            return false;
+        }
+    }
+
+    std::cout << "to the end successfully!" << std::endl;
+    return true;
 }
 
 int main(int argc, char** argv)
@@ -139,7 +260,8 @@ int main(int argc, char** argv)
     double maxpo = -1000, minpo = 1000, maxblocknum = 0;
     std::vector<float> dist;
     begin = clock();
-    for(float i = -50; i < 50; i+=0.1)
+    double poten[1000*1001];
+    for(float i = -50; i < 49.95; i+=0.1)
     {
         for(float j = -50; j < 50; j+=0.1)
         {
@@ -148,6 +270,7 @@ int main(int argc, char** argv)
             pt.y = j;
             octree.radiusNeighbors<unibn::L2Distance<pcl::PointXYZRGB> >(pt, 5.0f, results, dist);
             po = calPotantial(pt,results,dist);
+            poten[int(i*10+500)*1001+int(j*10+500)] = po;
             if(po>0)
             {
                 pt.r = po*150;
@@ -168,13 +291,17 @@ int main(int argc, char** argv)
     }
     end = clock();
     search_time = ((double)(end - begin) / CLOCKS_PER_SEC);
-    std::cout << "Searching for all radius block neighbors (r = 5.0m) for all points took "
+    std::cout << "calculate all potential took "
               << search_time << " seconds." << std::endl;
     std::cout << "max potantial " << maxpo << ", min potantial " << minpo << std::endl;
-    std::cout << "max block num " << maxblocknum << std::endl;
+    std::cout << "potential cloud size " << potanCloud->size() << std::endl;
+    //std::cout << "max block num " << maxblocknum << std::endl;
 
     //pcl::visualization::CloudViewer poviewer("Potantial Viewer");
     //pcl::visualization::CloudViewer pclviewer("Cloud Viewer");
+
+    //test find path
+    findPath(potanCloud, poten);
 
     std::cout << "show point cloud" << std::endl;
     int v1(0), v2(0);
