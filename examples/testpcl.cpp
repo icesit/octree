@@ -9,8 +9,10 @@
 #include <pcl/visualization/cloud_viewer.h>
 //#include <pcl_conversions/pcl_conversions.h>
 
-float start[3] = {-40, 40, -1};
-float end[3] = {40, -40, -1};
+//float start[3] = {-40, 40, -1};
+//float end[3] = {40, -40, -1};
+float start[3] = {0, 0, 1};
+float end[3] = {8, 2.5, 1};
 float mid[3] = {(start[0]+end[0])/2, (start[1]+end[1])/2, (start[2]+end[2])/2};
 float halfdist = 0.5 * sqrt(pow(start[0]-end[0],2) + pow(start[1]-end[1],2) + pow(start[2]-end[2],2));
 float startFactor = 0.5;
@@ -199,16 +201,17 @@ bool findPath(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& poten, double *po)
 
 int main(int argc, char** argv)
 {
-    if (argc < 3)
+    if (argc < 2)//3
     {
       std::cerr << "filename of point cloud missing." << std::endl;
       return -1;
     }
     std::string filename = argv[1];
-    std::string filename2 = argv[2];
+    //std::string filename2 = argv[2];
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr pCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-    readPoints2<pcl::PointXYZRGB>(filename, filename2, pCloud->points);
+    //readPoints2<pcl::PointXYZRGB>(filename, filename2, pCloud->points);
+    readPoints<pcl::PointXYZRGB>(filename, pCloud->points);
     std::cout << "Read " << pCloud->points.size() << " points." << std::endl;
     if (pCloud->points.size() == 0)
     {
@@ -255,7 +258,7 @@ int main(int argc, char** argv)
     //test calculate potantial
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr potanCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointXYZRGB pt;
-    pt.z = -1;
+    pt.z = 1;
     double po;
     double maxpo = -1000, minpo = 1000, maxblocknum = 0;
     std::vector<float> dist;
@@ -268,7 +271,7 @@ int main(int argc, char** argv)
             //std::cout << "calculating " << i << "," << j << std::endl;
             pt.x = i;
             pt.y = j;
-            octree.radiusNeighbors<unibn::L2Distance<pcl::PointXYZRGB> >(pt, 5.0f, results, dist);
+            octree.radiusNeighbors<unibn::L2Distance<pcl::PointXYZRGB> >(pt, 2.0f, results, dist);
             po = calPotantial(pt,results,dist);
             poten[int(i*10+500)*1001+int(j*10+500)] = po;
             if(po>0)

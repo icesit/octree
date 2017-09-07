@@ -22,9 +22,16 @@ if(Boost_FOUND)
 #  ADD_EXECUTABLE(example2 examples/example2.cpp)
 #  ADD_EXECUTABLE(example3 examples/example3.cpp)
   ADD_EXECUTABLE(testpcl examples/testpcl.cpp)
+  ADD_EXECUTABLE(testkeyframe
+    examples/testkeyframe.cpp
+    examples/keyframehandle.cpp
+  )
 
   # test pcl
- target_link_libraries(testpcl
+  target_link_libraries(testpcl
+    ${PCL_LIBRARIES}
+  )
+  target_link_libraries(testkeyframe
     ${PCL_LIBRARIES}
   )
 endif()
