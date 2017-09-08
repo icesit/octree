@@ -18,6 +18,8 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/cloud_viewer.h>
 
+#include <opencv2/core/core.hpp>
+
 using namespace std;
 
 class KeyFrameHandler
@@ -39,6 +41,7 @@ private:
   //store dense keyframe pos
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr denkeyfPC;
   float topPercent;
+  float minKeyFdist;
   //for pcl viewer
   int v1, v2;
   bool isview;
@@ -47,6 +50,8 @@ private:
   void readMapPt(const string &mpfile);
   //read keyframe to keyfPC
   void readKeyFrame(const string &kffile);
+  //read parameters from file
+  void readParams();
   //init pcl viewer
   void initPclViewer();
   //for i=12345, change str(line00000) to str(line12345)

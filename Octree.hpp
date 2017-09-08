@@ -267,8 +267,10 @@ class Octree
   template <typename Distance>
   int32_t findNeighbor(const PointT& query, float minDistance = -1) const;
 
-  ///my function
-  void rankDenseGrid(ContainerT &rankTop, float topPercent);
+  /// my function
+  /// choose topPercent dense of grid(distance between either of them is larger
+  /// than mindist) into rankTop
+  void rankDenseGrid(ContainerT &rankTop, float topPercent, float mindist);
 
  protected:
   class Octant
@@ -282,6 +284,8 @@ class Octree
     // bounding box of the octant needed for overlap and contains tests...
     float x, y, z;  // center
     float extent;   // half of side-length
+
+    float density;  // density of points
 
     uint32_t start, end;  // start and end in succ_
     uint32_t size;        // number of points
@@ -328,7 +332,7 @@ class Octree
 
   ///pick the top _num_of_rank dense leaf into _rankTop
   template <typename Distance>
-  void pickDenseGrid(ContainerT &_rankTop, std::vector<float> &den, int _num_of_rank, Octant* _node);
+  void pickDenseGrid(ContainerT &_rankTop, std::vector<float> &den, int _num_of_rank, float _mindist, Octant* _node);
 
 
   /** \brief test if search ball S(q,r) overlaps with octant
@@ -542,6 +546,7 @@ typename Octree<PointT, ContainerT>::Octant* Octree<PointT, ContainerT>::createO
   octant->start = startIdx;
   octant->end = endIdx;
   octant->size = size;
+  octant->density = size / pow(extent, 3);
 
   static const float factor[] = {-0.5f, 0.5f};
 
@@ -801,18 +806,18 @@ void Octree<PointT, ContainerT>::radiusNeighborsBlock(const PointT& query, float
 }
 
 template <typename PointT, typename ContainerT>
-void Octree<PointT, ContainerT>::rankDenseGrid(ContainerT &rankTop, float topPercent)
+void Octree<PointT, ContainerT>::rankDenseGrid(ContainerT &rankTop, float topPercent, float mindist)
 {
     int num_of_rank = num_of_leaf * topPercent;
     std::vector<float> density;
-    pickDenseGrid<unibn::L2Distance<PointT> >(rankTop, density, num_of_rank, root_);
+    pickDenseGrid<unibn::L2Distance<PointT> >(rankTop, density, num_of_rank, mindist, root_);
     std::cout << "top density:" << density[0]
               << ",bottom density:" << density[density.size()-1] << std::endl;
 }
 
 template <typename PointT, typename ContainerT>
 template <typename Distance>
-void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector<float> &den, int _num_of_rank, Octant* _node)
+void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector<float> &den, int _num_of_rank, float _mindist, Octant* _node)
 {
     //std::cout << "now get " << _rankTop.size() << ",total need " << _num_of_rank << std::endl ;
     if(_node == NULL)
@@ -822,7 +827,7 @@ void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector
     else if(_node->isLeaf)
     {
         int head = 0, end = _rankTop.size()-1, half = 0;
-        float dens = _node->size / pow(_node->extent, 3);
+        float dens = _node->density;
         PointT pt(0,0,255);
         pt.x = _node->x;
         pt.y = _node->y;
@@ -865,14 +870,14 @@ void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector
             for(int i=0; i<den.size(); ++i)
             {
                 dist = Distance::compute(pt, _rankTop[i]);
-                if(dist < 5.0) break;
+                if(dist < _mindist) break;
                 if(dens > den[i])
                 {
                     int j=i+1;
                     for(; j<den.size(); ++j)
                     {
                         dist = Distance::compute(pt, _rankTop[j]);
-                        if(dist < 5.0) break;
+                        if(dist < _mindist) break;
                     }
                     if(j>=den.size())
                     {
@@ -893,7 +898,7 @@ void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector
     else
     {
         for(int i=0; i<8; ++i)
-            pickDenseGrid<unibn::L2Distance<PointT> >(_rankTop, den, _num_of_rank, _node->child[i]);
+            pickDenseGrid<unibn::L2Distance<PointT> >(_rankTop, den, _num_of_rank, _mindist, _node->child[i]);
     }
 }
 

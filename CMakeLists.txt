@@ -11,6 +11,7 @@ find_package(Boost)
 # test pcl
 find_package(PCL REQUIRED COMPONENTS common io filters)
 FIND_PACKAGE( PCL REQUIRED COMPONENTS common io visualization )
+find_package(OpenCV REQUIRED)
 find_package(eigen)
 include_directories(
   ${PCL_INCLUDE_DIRS}
@@ -32,6 +33,7 @@ if(Boost_FOUND)
     ${PCL_LIBRARIES}
   )
   target_link_libraries(testkeyframe
+    ${OpenCV_LIBS}
     ${PCL_LIBRARIES}
   )
 endif()

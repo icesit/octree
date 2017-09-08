@@ -4,13 +4,14 @@ boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualizat
 const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(32, false, 0.01f);
 
 KeyFrameHandler::KeyFrameHandler(const string &mappointfile, const string &keyframefile):
-    v1(0),v2(0),isview(true),topPercent(0.25),
+    v1(0),v2(0),isview(true),topPercent(0.25),minKeyFdist(5.0),
     mapPC(new pcl::PointCloud<pcl::PointXYZRGB>),
     keyfPC(new pcl::PointCloud<pcl::PointXYZRGB>),
     denkeyfPC(new pcl::PointCloud<pcl::PointXYZRGB>)
 {
     readMapPt(mappointfile);
     readKeyFrame(keyframefile);
+    readParams();
     keyfOct.initialize(keyfPC->points, keyfOctParams);
     initPclViewer();
 }
@@ -101,10 +102,11 @@ void KeyFrameHandler::readMapPt(const string &mpfile)
         }
     }
 
-    std::cout << "read map point pos done." << std::endl
-              << "x range (" << minx << "," << maxx << ")" << std::endl
-              << "y range (" << miny << "," << maxy << ")" << std::endl
-              << "z range (" << minz << "," << maxz << ")" << std::endl;
+    std::cout << "read map point pos----->" << std::endl
+              << "  x range (" << minx << "," << maxx << ")" << std::endl
+              << "  y range (" << miny << "," << maxy << ")" << std::endl
+              << "  z range (" << minz << "," << maxz << ")" << std::endl
+              << "  total " << mapPC->size() << " map points." << endl;
     in.close();
 }
 
@@ -153,11 +155,28 @@ void KeyFrameHandler::readKeyFrame(const string &kffile)
         }
     }
 
-    std::cout << "read keyframe pos done." << std::endl
-              << "x range (" << minx << "," << maxx << ")" << std::endl
-              << "y range (" << miny << "," << maxy << ")" << std::endl
-              << "z range (" << minz << "," << maxz << ")" << std::endl;
+    std::cout << "read keyframe pos----->" << std::endl
+              << "  x range (" << minx << "," << maxx << ")" << std::endl
+              << "  y range (" << miny << "," << maxy << ")" << std::endl
+              << "  z range (" << minz << "," << maxz << ")" << std::endl
+              << "  total " << keyfPC->size() << " keyframe pos." << endl;
     in.close();
+}
+
+void KeyFrameHandler::readParams()
+{
+    cv::FileStorage fs("../examples/aParamForKeyframeHandle.yaml", cv::FileStorage::READ);
+    if(!fs.isOpened())
+    {
+        cout << "can not find parameter file ../examples/aParamForKeyframeHandle.yaml" << endl
+             << "default parameters are used!" << endl;
+        return;
+    }
+    fs["topPercent"] >> topPercent;
+    fs["minKeyFdist"] >> minKeyFdist;
+    cout << "read parameters----->" << endl
+         << "  topPercent:" << topPercent << endl
+         << "  minKeyFdist:" << minKeyFdist << endl;
 }
 
 void KeyFrameHandler::initPclViewer()
@@ -188,6 +207,6 @@ void KeyFrameHandler::setstring(string &str, int k)
 void KeyFrameHandler::findDenseKeyFrame()
 {
     //vector<float*> rank_dense_Keyf;
-    keyfOct.rankDenseGrid(denkeyfPC->points, topPercent);
+    keyfOct.rankDenseGrid(denkeyfPC->points, topPercent, minKeyFdist);
     cout << "dense keyframe pos number:" << denkeyfPC->size() << endl;
 }
