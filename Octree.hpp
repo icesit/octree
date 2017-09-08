@@ -327,6 +327,7 @@ class Octree
                        std::vector<float_t*>& resultIndices) const;
 
   ///pick the top _num_of_rank dense leaf into _rankTop
+  template <typename Distance>
   void pickDenseGrid(ContainerT &_rankTop, std::vector<float> &den, int _num_of_rank, Octant* _node);
 
 
@@ -804,10 +805,13 @@ void Octree<PointT, ContainerT>::rankDenseGrid(ContainerT &rankTop, float topPer
 {
     int num_of_rank = num_of_leaf * topPercent;
     std::vector<float> density;
-    pickDenseGrid(rankTop, density, num_of_rank, root_);
+    pickDenseGrid<unibn::L2Distance<PointT> >(rankTop, density, num_of_rank, root_);
+    std::cout << "top density:" << density[0]
+              << ",bottom density:" << density[density.size()-1] << std::endl;
 }
 
 template <typename PointT, typename ContainerT>
+template <typename Distance>
 void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector<float> &den, int _num_of_rank, Octant* _node)
 {
     //std::cout << "now get " << _rankTop.size() << ",total need " << _num_of_rank << std::endl ;
@@ -830,6 +834,7 @@ void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector
         }
         else
         {
+            /*//this is only with density
             if(dens < den[end])
                 return;
             else if(dens > den[head])
@@ -854,6 +859,30 @@ void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector
                 den.insert(den.begin()+end, dens);
                 _rankTop.insert(_rankTop.begin()+end, pt);
             }
+            */
+            //this is density, distance
+            float dist;
+            for(int i=0; i<den.size(); ++i)
+            {
+                dist = Distance::compute(pt, _rankTop[i]);
+                if(dist < 5.0) break;
+                if(dens > den[i])
+                {
+                    int j=i+1;
+                    for(; j<den.size(); ++j)
+                    {
+                        dist = Distance::compute(pt, _rankTop[j]);
+                        if(dist < 5.0) break;
+                    }
+                    if(j>=den.size())
+                    {
+                        den.insert(den.begin()+i, dens);
+                        _rankTop.insert(_rankTop.begin()+i, pt);
+                    }
+                    break;
+                }
+            }
+            //if too much pos, delete last one
             if(den.size() > _num_of_rank)
             {
                 den.pop_back();
@@ -864,7 +893,7 @@ void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector
     else
     {
         for(int i=0; i<8; ++i)
-            pickDenseGrid(_rankTop, den, _num_of_rank, _node->child[i]);
+            pickDenseGrid<unibn::L2Distance<PointT> >(_rankTop, den, _num_of_rank, _node->child[i]);
     }
 }
 

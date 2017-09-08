@@ -46,7 +46,7 @@ void KeyFrameHandler::display()
     viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "dealed map point cloud", v2);
     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> pchdenkeyfPC(denkeyfPC);
     viewer->addPointCloud<pcl::PointXYZRGB> (denkeyfPC, pchdenkeyfPC, "dealed keyframe cloud", v2);
-    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "dealed keyframe cloud", v2);
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "dealed keyframe cloud", v2);
     viewer->addCoordinateSystem (1.0, "dealed cloud", v2);
 
     while(isview)
