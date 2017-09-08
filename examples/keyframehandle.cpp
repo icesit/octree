@@ -1,16 +1,17 @@
 #include "keyframehandle.h"
 
 boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(32, false, 0.01f);
 
 KeyFrameHandler::KeyFrameHandler(const string &mappointfile, const string &keyframefile):
-    v1(0),v2(0),isview(true),
+    v1(0),v2(0),isview(true),topPercent(0.25),
     mapPC(new pcl::PointCloud<pcl::PointXYZRGB>),
     keyfPC(new pcl::PointCloud<pcl::PointXYZRGB>),
     denkeyfPC(new pcl::PointCloud<pcl::PointXYZRGB>)
 {
     readMapPt(mappointfile);
     readKeyFrame(keyframefile);
-    keyfOct.initialize(keyfPC, keyfOctParams);
+    keyfOct.initialize(keyfPC->points, keyfOctParams);
     initPclViewer();
 }
 
@@ -32,24 +33,24 @@ void KeyFrameHandler::display()
     viewer->addPointCloud<pcl::PointXYZRGB> (keyfPC, pchkeyfPC, "origin keyframe cloud", v1);
     viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "origin keyframe cloud", v1);
     viewer->addCoordinateSystem (1.0, "origin cloud", v1);
-//    pcl::ModelCoefficients line_coeff;
-//    line_coeff.values.resize (6);
+    //add line of keyframe
     string li("line00000");
     for(int i=0; i<keyfPC->size()-1; ++i)
     {
-//        line_coeff.values[0] = keyfPC->points[i].x;
-//        line_coeff.values[1] = keyfPC->points[i].y;
-//        line_coeff.values[2] = keyfPC->points[i].z;
-//        line_coeff.values[3] = keyfPC->points[i+1].x;
-//        line_coeff.values[4] = keyfPC->points[i+1].y;
-//        line_coeff.values[5] = keyfPC->points[i+1].z;
         setstring(li, i);
         viewer->addLine(keyfPC->points[i], keyfPC->points[i+1], 0, 255, 0, li, v1);
     }
 
+    //display dealed map point and keyframe pos
+    viewer->addPointCloud<pcl::PointXYZRGB> (mapPC, pchmapPC, "dealed map point cloud", v2);
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "dealed map point cloud", v2);
+    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> pchdenkeyfPC(denkeyfPC);
+    viewer->addPointCloud<pcl::PointXYZRGB> (denkeyfPC, pchdenkeyfPC, "dealed keyframe cloud", v2);
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "dealed keyframe cloud", v2);
+    viewer->addCoordinateSystem (1.0, "dealed cloud", v2);
+
     while(isview)
     {
-        //cout << "show point cloud" << endl;
         viewer->spinOnce (100);
     }
 }
@@ -185,4 +186,8 @@ void KeyFrameHandler::setstring(string &str, int k)
 }
 
 void KeyFrameHandler::findDenseKeyFrame()
-{}
+{
+    //vector<float*> rank_dense_Keyf;
+    keyfOct.rankDenseGrid(denkeyfPC->points, topPercent);
+    cout << "dense keyframe pos number:" << denkeyfPC->size() << endl;
+}

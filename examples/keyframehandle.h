@@ -20,8 +20,6 @@
 
 using namespace std;
 
-const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(32, false, 0.01f);
-
 class KeyFrameHandler
 {
 public:
@@ -40,6 +38,7 @@ private:
   unibn::Octree<pcl::PointXYZRGB> keyfOct;
   //store dense keyframe pos
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr denkeyfPC;
+  float topPercent;
   //for pcl viewer
   int v1, v2;
   bool isview;

@@ -267,6 +267,9 @@ class Octree
   template <typename Distance>
   int32_t findNeighbor(const PointT& query, float minDistance = -1) const;
 
+  ///my function
+  void rankDenseGrid(ContainerT &rankTop, float topPercent);
+
  protected:
   class Octant
   {
@@ -323,6 +326,9 @@ class Octree
   void radiusNeighborsBlock(const Octant* octant, const PointT& query, float radius, float sqrRadius,
                        std::vector<float_t*>& resultIndices) const;
 
+  ///pick the top _num_of_rank dense leaf into _rankTop
+  void pickDenseGrid(ContainerT &_rankTop, std::vector<float> &den, int _num_of_rank, Octant* _node);
+
 
   /** \brief test if search ball S(q,r) overlaps with octant
    *
@@ -361,6 +367,9 @@ class Octree
   Octant* root_;
   const ContainerT* data_;
 
+  //number of leaf
+  long num_of_leaf;
+
   std::vector<uint32_t> successors_;  // single connected list of next point indices...
 
   friend class ::OctreeTest;
@@ -397,6 +406,7 @@ void Octree<PointT, ContainerT>::initialize(const ContainerT& pts, const OctreeP
 {
   clear();
   params_ = params;
+  num_of_leaf = 0;
 
   if (params_.copyPoints)
     data_ = new ContainerT(pts);
@@ -594,6 +604,11 @@ typename Octree<PointT, ContainerT>::Octant* Octree<PointT, ContainerT>::createO
     }
   }
 
+  if(octant->isLeaf)
+  {
+      ++num_of_leaf;
+  }
+
   return octant;
 }
 
@@ -782,6 +797,75 @@ void Octree<PointT, ContainerT>::radiusNeighborsBlock(const PointT& query, float
 
   float sqrRadius = Distance::sqr(radius);  // "squared" radius
   radiusNeighborsBlock<Distance>(root_, query, radius, sqrRadius, resultIndices);
+}
+
+template <typename PointT, typename ContainerT>
+void Octree<PointT, ContainerT>::rankDenseGrid(ContainerT &rankTop, float topPercent)
+{
+    int num_of_rank = num_of_leaf * topPercent;
+    std::vector<float> density;
+    pickDenseGrid(rankTop, density, num_of_rank, root_);
+}
+
+template <typename PointT, typename ContainerT>
+void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector<float> &den, int _num_of_rank, Octant* _node)
+{
+    //std::cout << "now get " << _rankTop.size() << ",total need " << _num_of_rank << std::endl ;
+    if(_node == NULL)
+    {
+        return;
+    }
+    else if(_node->isLeaf)
+    {
+        int head = 0, end = _rankTop.size()-1, half = 0;
+        float dens = _node->size / pow(_node->extent, 3);
+        PointT pt(0,0,255);
+        pt.x = _node->x;
+        pt.y = _node->y;
+        pt.z = _node->z;
+        if(end<0)   // nothing in vector
+        {
+            den.push_back(dens);
+            _rankTop.push_back(pt);
+        }
+        else
+        {
+            if(dens < den[end])
+                return;
+            else if(dens > den[head])
+            {
+                den.insert(den.begin(), dens);
+                _rankTop.insert(_rankTop.begin(), pt);
+            }
+            else
+            {
+                while((end-head)>1)
+                {
+                    half = (end+head) / 2;
+                    if(dens > den[half])
+                    {
+                        end = half;
+                    }
+                    else
+                    {
+                        head = half;
+                    }
+                }
+                den.insert(den.begin()+end, dens);
+                _rankTop.insert(_rankTop.begin()+end, pt);
+            }
+            if(den.size() > _num_of_rank)
+            {
+                den.pop_back();
+                _rankTop.pop_back();
+            }
+        }
+    }
+    else
+    {
+        for(int i=0; i<8; ++i)
+            pickDenseGrid(_rankTop, den, _num_of_rank, _node->child[i]);
+    }
 }
 
 template <typename PointT, typename ContainerT>
