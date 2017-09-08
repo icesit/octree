@@ -2,6 +2,7 @@
 
 boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
 const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(32, false, 0.01f);
+const unibn::OctreeParams& mapOctParams = unibn::OctreeParams(128, false, 0.02f);
 
 KeyFrameHandler::KeyFrameHandler(const string &mappointfile, const string &keyframefile):
     v1(0),v2(0),isview(true),topPercent(0.25),minKeyFdist(5.0),
@@ -13,6 +14,7 @@ KeyFrameHandler::KeyFrameHandler(const string &mappointfile, const string &keyfr
     readKeyFrame(keyframefile);
     readParams();
     keyfOct.initialize(keyfPC->points, keyfOctParams);
+    mapOct.initialize(mapPC->points, mapOctParams);
     initPclViewer();
 }
 
@@ -22,6 +24,7 @@ KeyFrameHandler::~KeyFrameHandler()
 void KeyFrameHandler::dealKeyFrame()
 {
     findDenseKeyFrame();
+    lineDenseKeyFrame();
 }
 
 void KeyFrameHandler::display()
@@ -49,6 +52,13 @@ void KeyFrameHandler::display()
     viewer->addPointCloud<pcl::PointXYZRGB> (denkeyfPC, pchdenkeyfPC, "dealed keyframe cloud", v2);
     viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "dealed keyframe cloud", v2);
     viewer->addCoordinateSystem (1.0, "dealed cloud", v2);
+    //add line of dense keyframe
+    string lii("dline00000");
+    for(int i=0; i<denkeyfLine.size(); ++i)
+    {
+        setstring(lii, i);
+        viewer->addLine(denkeyfPC->points[denkeyfLine[i][0]], denkeyfPC->points[denkeyfLine[i][1]], 0, 255, 0, lii, v2);
+    }
 
     while(isview)
     {
@@ -209,4 +219,22 @@ void KeyFrameHandler::findDenseKeyFrame()
     //vector<float*> rank_dense_Keyf;
     keyfOct.rankDenseGrid(denkeyfPC->points, topPercent, minKeyFdist);
     cout << "dense keyframe pos number:" << denkeyfPC->size() << endl;
+}
+
+void KeyFrameHandler::lineDenseKeyFrame()
+{
+    vector<int> a(2);
+    for(int i=0; i<denkeyfPC->size()-1; ++i)
+    {
+        for(int j=i+1; j<denkeyfPC->size(); ++j)
+        {
+            if( !mapOct.isBlock<unibn::L2Distance<pcl::PointXYZRGB> >(denkeyfPC->points[i], denkeyfPC->points[j]) )
+            {
+                a[0] = i;
+                a[1] = j;
+                denkeyfLine.push_back(a);
+            }
+        }
+    }
+    cout << "dense keyframe line number:" << denkeyfLine.size() << endl;
 }

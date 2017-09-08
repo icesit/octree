@@ -272,6 +272,11 @@ class Octree
   /// than mindist) into rankTop
   void rankDenseGrid(ContainerT &rankTop, float topPercent, float mindist);
 
+  /// my function
+  /// judge wether two position is blocked by points
+  template <typename Distance>
+  bool isBlock(PointT &a, PointT &b);
+
  protected:
   class Octant
   {
@@ -813,6 +818,29 @@ void Octree<PointT, ContainerT>::rankDenseGrid(ContainerT &rankTop, float topPer
     pickDenseGrid<unibn::L2Distance<PointT> >(rankTop, density, num_of_rank, mindist, root_);
     std::cout << "top density:" << density[0]
               << ",bottom density:" << density[density.size()-1] << std::endl;
+}
+
+template <typename PointT, typename ContainerT>
+template <typename Distance>
+bool Octree<PointT, ContainerT>::isBlock(PointT &a, PointT &b)
+{
+    if(Distance::compute(a, b) < 0.3)
+        return false;
+
+    PointT mid;
+    mid.x = (a.x+b.x) / 2;
+    mid.y = (a.y+b.y) / 2;
+    mid.z = (a.z+b.z) / 2;
+    std::vector<uint32_t> resultId;
+    radiusNeighbors<Distance>(mid, 0.3, resultId);
+    if(resultId.size() < 5)
+    {
+        return (isBlock<Distance>(a, mid) || isBlock<Distance>(mid, b));
+    }
+    else
+    {
+        return true;
+    }
 }
 
 template <typename PointT, typename ContainerT>

@@ -34,12 +34,15 @@ public:
 private:
   //store map points pos
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr mapPC;
+  //octree of map point
+  unibn::Octree<pcl::PointXYZRGB> mapOct;
   //store keyframe pos
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr keyfPC;
   //octree of keyframe
   unibn::Octree<pcl::PointXYZRGB> keyfOct;
   //store dense keyframe pos
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr denkeyfPC;
+  vector< vector<int> > denkeyfLine;
   float topPercent;
   float minKeyFdist;
   //for pcl viewer
@@ -58,6 +61,8 @@ private:
   void setstring(string &str, int k);
   //find dense keyframe pos
   void findDenseKeyFrame();
+  //line all the dense keyframe pos
+  void lineDenseKeyFrame();
 };
 
 #endif
