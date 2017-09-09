@@ -36,6 +36,7 @@ private:
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr mapPC;
   //octree of map point
   unibn::Octree<pcl::PointXYZRGB> mapOct;
+  float mappointSparse;
   //store keyframe pos
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr keyfPC;
   //octree of keyframe

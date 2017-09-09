@@ -1,3 +1,15 @@
 %YAML:1.0
-topPercent: 0.20
-minKeyFdist: 5.5
+topPercent: 0.4
+minKeyFdist: 8.0
+mappointSparse: 0.5
+
+##good params
+#zone0
+#topPercent: 0.25
+#minKeyFdist: 5.0
+#mappointSparse: 0.3
+#
+#zone1
+#topPercent: 0.4
+#minKeyFdist: 8.0
+#mappointSparse: 0.5

@@ -5,7 +5,7 @@ const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(32, false, 0.01f)
 const unibn::OctreeParams& mapOctParams = unibn::OctreeParams(128, false, 0.02f);
 
 KeyFrameHandler::KeyFrameHandler(const string &mappointfile, const string &keyframefile):
-    v1(0),v2(0),isview(true),topPercent(0.25),minKeyFdist(5.0),
+    v1(0),v2(0),isview(true),topPercent(0.25),minKeyFdist(5.0),mappointSparse(0.35),
     mapPC(new pcl::PointCloud<pcl::PointXYZRGB>),
     keyfPC(new pcl::PointCloud<pcl::PointXYZRGB>),
     denkeyfPC(new pcl::PointCloud<pcl::PointXYZRGB>)
@@ -184,9 +184,11 @@ void KeyFrameHandler::readParams()
     }
     fs["topPercent"] >> topPercent;
     fs["minKeyFdist"] >> minKeyFdist;
+    fs["mappointSparse"] >> mappointSparse;
     cout << "read parameters----->" << endl
          << "  topPercent:" << topPercent << endl
-         << "  minKeyFdist:" << minKeyFdist << endl;
+         << "  minKeyFdist:" << minKeyFdist << endl
+         << "  mappointSparse:" << mappointSparse <<endl;
 }
 
 void KeyFrameHandler::initPclViewer()
@@ -228,7 +230,7 @@ void KeyFrameHandler::lineDenseKeyFrame()
     {
         for(int j=i+1; j<denkeyfPC->size(); ++j)
         {
-            if( !mapOct.isBlock<unibn::L2Distance<pcl::PointXYZRGB> >(denkeyfPC->points[i], denkeyfPC->points[j]) )
+            if( !mapOct.isBlock<unibn::L2Distance<pcl::PointXYZRGB> >(denkeyfPC->points[i], denkeyfPC->points[j], mappointSparse) )
             {
                 a[0] = i;
                 a[1] = j;

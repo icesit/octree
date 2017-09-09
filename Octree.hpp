@@ -275,7 +275,7 @@ class Octree
   /// my function
   /// judge wether two position is blocked by points
   template <typename Distance>
-  bool isBlock(PointT &a, PointT &b);
+  bool isBlock(PointT &a, PointT &b, float mpSparse);
 
  protected:
   class Octant
@@ -289,6 +289,7 @@ class Octree
     // bounding box of the octant needed for overlap and contains tests...
     float x, y, z;  // center
     float extent;   // half of side-length
+    float rx, ry, rz;    //density center
 
     float density;  // density of points
 
@@ -617,6 +618,21 @@ typename Octree<PointT, ContainerT>::Octant* Octree<PointT, ContainerT>::createO
 
   if(octant->isLeaf)
   {
+      const ContainerT& points = *data_;
+      uint32_t idx = octant->start;
+      octant->rx = 0;
+      octant->ry = 0;
+      octant->rz = 0;
+      for (uint32_t i = 0; i < octant->size; ++i)
+      {
+        octant->rx += points[idx].x;
+        octant->ry += points[idx].y;
+        octant->rz += points[idx].z;
+        idx = successors_[idx];
+      }
+      octant->rx = octant->rx / size;
+      octant->ry = octant->ry / size;
+      octant->rz = octant->rz / size;
       ++num_of_leaf;
   }
 
@@ -822,9 +838,9 @@ void Octree<PointT, ContainerT>::rankDenseGrid(ContainerT &rankTop, float topPer
 
 template <typename PointT, typename ContainerT>
 template <typename Distance>
-bool Octree<PointT, ContainerT>::isBlock(PointT &a, PointT &b)
+bool Octree<PointT, ContainerT>::isBlock(PointT &a, PointT &b, float mpSparse)
 {
-    if(Distance::compute(a, b) < 0.3)
+    if(Distance::compute(a, b) < mpSparse)
         return false;
 
     PointT mid;
@@ -832,10 +848,10 @@ bool Octree<PointT, ContainerT>::isBlock(PointT &a, PointT &b)
     mid.y = (a.y+b.y) / 2;
     mid.z = (a.z+b.z) / 2;
     std::vector<uint32_t> resultId;
-    radiusNeighbors<Distance>(mid, 0.3, resultId);
+    radiusNeighbors<Distance>(mid, mpSparse, resultId);
     if(resultId.size() < 5)
     {
-        return (isBlock<Distance>(a, mid) || isBlock<Distance>(mid, b));
+        return (isBlock<Distance>(a, mid, mpSparse) || isBlock<Distance>(mid, b, mpSparse));
     }
     else
     {
@@ -857,9 +873,9 @@ void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector
         int head = 0, end = _rankTop.size()-1, half = 0;
         float dens = _node->density;
         PointT pt(0,0,255);
-        pt.x = _node->x;
-        pt.y = _node->y;
-        pt.z = _node->z;
+        pt.x = _node->rx;
+        pt.y = _node->ry;
+        pt.z = _node->rz;
         if(end<0)   // nothing in vector
         {
             den.push_back(dens);
