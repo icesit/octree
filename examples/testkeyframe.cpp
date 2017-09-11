@@ -12,6 +12,7 @@ int main(int argc, char** argv)
     KeyFrameHandler kfh(mappointfilename, keyframefilename);
 
     kfh.dealKeyFrame();
+    kfh.saveResult();
     kfh.display();
     
     return 1;

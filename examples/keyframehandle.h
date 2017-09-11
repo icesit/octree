@@ -31,6 +31,8 @@ public:
   void dealKeyFrame();
   //display map points and keyframes and result
   void display();
+  //save keyframe position and link relation
+  void saveResult();
 private:
   //store map points pos
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr mapPC;

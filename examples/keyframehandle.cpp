@@ -66,6 +66,30 @@ void KeyFrameHandler::display()
     }
 }
 
+void KeyFrameHandler::saveResult()
+{
+    cout << "saving dense keyframe position and and link relation..." << endl;
+
+    ofstream of("../Result/denKeyfPos.txt");
+
+    for(int i=0; i<denkeyfPC->size(); ++i)
+    {
+        of << denkeyfPC->points[i].x << " "
+           << denkeyfPC->points[i].y << " "
+           << denkeyfPC->points[i].z << endl;
+    }
+    of.close();
+
+    ofstream of1("../Result/denKeyfPosRelation.txt");
+    for(int i=0; i<denkeyfLine.size(); ++i)
+    {
+        of1 << denkeyfLine[i][0] << " "
+            << denkeyfLine[i][1] << endl;
+    }
+
+    cout << "save done!" << endl;
+}
+
 void KeyFrameHandler::readMapPt(const string &mpfile)
 {
     std::ifstream in(mpfile.c_str());
