@@ -1,6 +1,7 @@
 #include "findpathsrm.h"
 
 boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+const unibn::OctreeParams& mapOctParams = unibn::OctreeParams(128, false, 0.02f);
 
 PathNode::PathNode(float _x, float _y, float _z, int _id):
     x(_x),y(_y),z(_z),id_self(_id)
@@ -24,7 +25,8 @@ void PathNode::addLink(int _id_link)
 
 FindPathSRM::FindPathSRM(float _startx, float _starty, float _startz,
                          float _endx, float _endy, float _endz, bool _isview):
-    startP(200,0,200), endP(100, 50, 250), isview(_isview),
+    startP(200,0,200), endP(100, 50, 50), id_startNode(-1), id_endNode(-1), isview(_isview),
+    mappointSparse(5.0),
     keyPosPC(new pcl::PointCloud<pcl::PointXYZRGB>),
     mapPC(new pcl::PointCloud<pcl::PointXYZRGB>)
 {
@@ -36,6 +38,7 @@ FindPathSRM::FindPathSRM(float _startx, float _starty, float _startz,
     endP.z = _endz;
     reconstructGraph();
     initPclViewer();
+    mapOct.initialize(mapPC->points, mapOctParams);
 }
 
 FindPathSRM::~FindPathSRM()
@@ -43,6 +46,13 @@ FindPathSRM::~FindPathSRM()
 
 bool FindPathSRM::findPath()
 {
+    if(findStartEndNode<unibn::L2Distance<pcl::PointXYZRGB> >())
+    {}
+    else
+    {
+        cout << "Start/End position is not reachable!" << endl;
+        return 0;
+    }
     return 1;
 }
 
@@ -74,6 +84,14 @@ void FindPathSRM::display()
             setstring(li, i);
             viewer->addLine(keyPosPC->points[keyPosLink[i][0]], keyPosPC->points[keyPosLink[i][1]], 0, 255, 0, li, v1);
         }
+        if(id_startNode>=0)
+        {
+            viewer->addLine(startP, keyPosPC->points[id_startNode], 200, 0, 200, "linestart", v1);
+        }
+        if(id_endNode>=0)
+        {
+            viewer->addLine(endP, keyPosPC->points[id_endNode], 200, 0, 200, "lineend", v1);
+        }
     }
 
     while(isview)
@@ -90,6 +108,7 @@ void FindPathSRM::reconstructGraph()
     readPoint();
     readLink();
     readMapPoint();
+    readParams();
 }
 
 void FindPathSRM::readPoint()
@@ -205,6 +224,21 @@ void FindPathSRM::readMapPoint()
     in.close();
 }
 
+void FindPathSRM::readParams()
+{
+    cv::FileStorage fs("../examples/aParamForKeyframeHandle.yaml", cv::FileStorage::READ);
+    if(!fs.isOpened())
+    {
+        cout << "can not find parameter file ../examples/aParamForKeyframeHandle.yaml" << endl
+             << "default parameters are used!" << endl;
+        return;
+    }
+
+    fs["mappointSparse"] >> mappointSparse;
+    cout << "read parameters----->" << endl
+         << "  mappointSparse:" << mappointSparse <<endl;
+}
+
 void FindPathSRM::initPclViewer()
 {
     viewer->initCameraParameters();
@@ -225,5 +259,37 @@ void FindPathSRM::setstring(string &str, int k)
         str.erase(size-i,1);
         b = b - t;
         ++i;
+    }
+}
+
+template <typename Distance>
+bool FindPathSRM::findStartEndNode()
+{
+    float mindistS = 10000, mindistE = 10000, tmpdist;
+    for(int i=0; i<keyPosPC->size(); ++i)
+    {
+        tmpdist = Distance::compute(keyPosPC->points[i], startP);
+        if(tmpdist<mindistS && !mapOct.isBlock<unibn::L2Distance<pcl::PointXYZRGB> >(startP, keyPosPC->points[i], mappointSparse))
+        {
+            id_startNode = i;
+            mindistS = tmpdist;
+        }
+
+        tmpdist = Distance::compute(keyPosPC->points[i], endP);
+        if(tmpdist<mindistE && !mapOct.isBlock<unibn::L2Distance<pcl::PointXYZRGB> >(endP, keyPosPC->points[i], mappointSparse))
+        {
+            id_endNode = i;
+            mindistE = tmpdist;
+        }
+    }
+
+    cout << "start node id:" << id_startNode << ", end node id:" << id_endNode << endl;
+    if(id_startNode<0 || id_endNode<0)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
     }
 }

@@ -41,6 +41,7 @@ if(Boost_FOUND)
     ${PCL_LIBRARIES}
   )
   target_link_libraries(testfindpath
+    ${OpenCV_LIBS}
     ${PCL_LIBRARIES}
   )
 endif()

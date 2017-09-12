@@ -10,6 +10,8 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/cloud_viewer.h>
 
+#include <opencv2/core/core.hpp>
+
 using namespace std;
 
 class PathNode
@@ -42,7 +44,7 @@ private:
     //the start and end position
     pcl::PointXYZRGB startP, endP;
     //nearest node from start/end position
-    int startNode, endNode;
+    int id_startNode, id_endNode;
     //path
     vector<int> path;
     vector<PathNode> pNode;
@@ -50,6 +52,8 @@ private:
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr keyPosPC;
     vector< vector<int> > keyPosLink;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr mapPC;
+    unibn::Octree<pcl::PointXYZRGB> mapOct;
+    float mappointSparse;
     //for pcl viewer
     int v1;
     bool isview;
@@ -62,10 +66,16 @@ private:
     void readLink();
     //read map point for view
     void readMapPoint();
+    //read parameters from file
+    void readParams();
     //init pcl viewer
     void initPclViewer();
     //for i=12345, change str(line00000) to str(line12345)
     void setstring(string &str, int k);
+
+    //find start and end node
+    template <typename Distance>
+    bool findStartEndNode();
 };
 
 
