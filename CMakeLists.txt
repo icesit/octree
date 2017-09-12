@@ -27,6 +27,10 @@ if(Boost_FOUND)
     examples/testkeyframe.cpp
     examples/keyframehandle.cpp
   )
+  ADD_EXECUTABLE(testfindpath
+    findPath/testfindpath.cpp
+    findPath/findpathsrm.cpp
+  )
 
   # test pcl
   target_link_libraries(testpcl
@@ -34,6 +38,9 @@ if(Boost_FOUND)
   )
   target_link_libraries(testkeyframe
     ${OpenCV_LIBS}
+    ${PCL_LIBRARIES}
+  )
+  target_link_libraries(testfindpath
     ${PCL_LIBRARIES}
   )
 endif()

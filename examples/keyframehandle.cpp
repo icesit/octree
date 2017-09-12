@@ -86,6 +86,16 @@ void KeyFrameHandler::saveResult()
         of1 << denkeyfLine[i][0] << " "
             << denkeyfLine[i][1] << endl;
     }
+    of1.close();
+
+    ofstream of2("../Result/MapPointsPos.txt");
+    for(int i=0; i<mapPC->size(); ++i)
+    {
+        of2 << mapPC->points[i].x << " "
+            << mapPC->points[i].y << " "
+            << mapPC->points[i].z << endl;
+    }
+    of2.close();
 
     cout << "save done!" << endl;
 }
