@@ -5,6 +5,7 @@ int main(int argc, char** argv)
     if (argc < 6)
     {
         std::cout << "please input 6 params(startx starty startz endx endy endz)" << std::endl;
+        return 0;
     }
 
     FindPathSRM fpsrm((float)atof(argv[1]), (float)atof(argv[2]), (float)atof(argv[3]),

@@ -4,7 +4,8 @@ boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualizat
 const unibn::OctreeParams& mapOctParams = unibn::OctreeParams(128, false, 0.02f);
 
 PathNode::PathNode(float _x, float _y, float _z, int _id):
-    x(_x),y(_y),z(_z),id_self(_id)
+    x(_x),y(_y),z(_z),id_self(_id), id_fromWhere(-1), isDealed(false),
+    distTilNow(-1), distToEnd(-1), distTotal(-1)
 {}
 
 PathNode::~PathNode()
@@ -18,9 +19,10 @@ void PathNode::setxyzid(float _x, float _y, float _z, int _id)
     id_self = _id;
 }
 
-void PathNode::addLink(int _id_link)
+void PathNode::addLink(int _id_link, float _dist)
 {
     id_link.push_back(_id_link);
+    dist_link.push_back(_dist);
 }
 
 FindPathSRM::FindPathSRM(float _startx, float _starty, float _startz,
@@ -46,8 +48,11 @@ FindPathSRM::~FindPathSRM()
 
 bool FindPathSRM::findPath()
 {
+    testShowNode();
     if(findStartEndNode<unibn::L2Distance<pcl::PointXYZRGB> >())
-    {}
+    {
+        astar<unibn::L2Distance<pcl::PointXYZRGB> >();
+    }
     else
     {
         cout << "Start/End position is not reachable!" << endl;
@@ -92,6 +97,21 @@ void FindPathSRM::display()
         {
             viewer->addLine(endP, keyPosPC->points[id_endNode], 200, 0, 200, "lineend", v1);
         }
+
+        //add path line
+        if(path.size()>1)
+        {
+            string pli("path00000");
+            cout << "Path(node number):" << endl;
+            for(int j=0; j<path.size()-1; ++j)
+            {
+                cout << path[j] << "<-";
+                setstring(pli, j);
+                viewer->addLine(keyPosPC->points[path[j]], keyPosPC->points[path[j+1]], 200, 0, 200, pli, v1);
+            }
+            cout << path[path.size()-1] << endl;
+        }
+
     }
 
     while(isview)
@@ -175,6 +195,7 @@ void FindPathSRM::readLink()
     boost::char_separator<char> sep(" ");
     int i,j;
     vector<int> tmp(2);
+    float distmp;
 
     while (!in.eof())
     {
@@ -188,8 +209,15 @@ void FindPathSRM::readLink()
         tmp[0] = i;
         tmp[1] = j;
         keyPosLink.push_back(tmp);
+        distmp = unibn::L2Distance<pcl::PointXYZRGB>::sqrt(
+                    unibn::L2Distance<pcl::PointXYZRGB>::compute(
+                        keyPosPC->points[i],keyPosPC->points[j]));
+                /*sqrt(pow((keyPosPC->points[i].x-keyPosPC->points[j].x),2)
+                    + pow((keyPosPC->points[i].y-keyPosPC->points[j].y),2)
+                    + pow((keyPosPC->points[i].z-keyPosPC->points[j].z),2));*/
 
-        pNode[i].addLink(j);
+        pNode[i].addLink(j, distmp);
+        pNode[j].addLink(i, distmp);
     }
     cout << "read link------>" << endl
          << "  total " << keyPosLink.size() << " link." << endl;
@@ -269,14 +297,14 @@ bool FindPathSRM::findStartEndNode()
     for(int i=0; i<keyPosPC->size(); ++i)
     {
         tmpdist = Distance::compute(keyPosPC->points[i], startP);
-        if(tmpdist<mindistS && !mapOct.isBlock<unibn::L2Distance<pcl::PointXYZRGB> >(startP, keyPosPC->points[i], mappointSparse))
+        if(tmpdist<mindistS && !mapOct.isBlock<Distance >(startP, keyPosPC->points[i], mappointSparse))
         {
             id_startNode = i;
             mindistS = tmpdist;
         }
 
         tmpdist = Distance::compute(keyPosPC->points[i], endP);
-        if(tmpdist<mindistE && !mapOct.isBlock<unibn::L2Distance<pcl::PointXYZRGB> >(endP, keyPosPC->points[i], mappointSparse))
+        if(tmpdist<mindistE && !mapOct.isBlock<Distance >(endP, keyPosPC->points[i], mappointSparse))
         {
             id_endNode = i;
             mindistE = tmpdist;
@@ -292,4 +320,164 @@ bool FindPathSRM::findStartEndNode()
     {
         return 1;
     }
+}
+
+template <typename Distance>
+void FindPathSRM::astar()
+{
+    vector<int> nodeQueue;
+    //first node
+    pNode[id_startNode].id_fromWhere = id_startNode;
+    pNode[id_startNode].distTilNow = 0;
+    pNode[id_startNode].distToEnd = Distance::sqrt(
+                Distance::compute(
+                    keyPosPC->points[id_startNode], keyPosPC->points[id_endNode]));
+    pNode[id_startNode].distTotal = pNode[id_startNode].distTilNow +
+            pNode[id_startNode].distToEnd;
+    pNode[id_startNode].isDealed = true;
+    nodeQueue.push_back(id_startNode);
+
+    int id_now, id_next, dealtime=0;
+    float dtn_tmp;
+    while(!nodeQueue.empty())
+    {
+        if((++dealtime)>200)
+        {
+            cout << "Path not found" << endl;
+            break;
+        }
+
+        id_now = nodeQueue[nodeQueue.size()-1];
+        //test cout
+        cout << "queue size:" <<nodeQueue.size()<<". dealtime:"<<dealtime
+             << ". id_now:" << id_now << ". id now link size:"<<pNode[id_now].id_link.size() <<endl;
+        testShowQueue(nodeQueue);
+        if(id_now == id_endNode)
+        {
+            cout << "get path:";
+            while(id_now != id_startNode)
+            {
+                cout << id_now << " ";
+                path.push_back(id_now);
+                id_now = pNode[id_now].id_fromWhere;
+            }
+            path.push_back(id_startNode);
+            cout << "Find path done! Path node size:" << path.size() << endl;
+            break;
+        }
+        nodeQueue.pop_back();
+//        cout << "after pop back" << endl;
+//        testShowQueue(nodeQueue);
+
+        for(int i=0; i<pNode[id_now].id_link.size(); ++i)
+        {
+            id_next = pNode[id_now].id_link[i];
+            //cout << "dealing node id:" <<id_next<<endl;
+            if(id_next == pNode[id_now].id_fromWhere) continue;
+
+            if(!pNode[id_next].isDealed)
+            {
+                pNode[id_next].distTilNow = pNode[id_now].distTotal
+                        + pNode[id_now].dist_link[i];
+                pNode[id_next].id_fromWhere = id_now;
+                pNode[id_next].distToEnd = Distance::sqrt(
+                        Distance::compute(
+                            keyPosPC->points[id_startNode], keyPosPC->points[id_endNode]));
+                pNode[id_next].distTotal = pNode[id_next].distToEnd
+                        + pNode[id_next].distTilNow;
+                pNode[id_next].isDealed = true;
+
+                insertSortByDistTotal(id_next, nodeQueue);
+//                cout << "after insert not dealed node"<< endl;
+//                testShowQueue(nodeQueue);
+            }
+            else
+            {
+                dtn_tmp = pNode[id_now].distTotal + pNode[id_now].dist_link[i];
+                if(dtn_tmp < pNode[id_next].distTilNow)
+                {
+                    pNode[id_next].distTilNow = dtn_tmp;
+                    pNode[id_next].id_fromWhere = id_now;
+                    pNode[id_next].distTotal = pNode[id_next].distToEnd
+                            + pNode[id_next].distTilNow;
+
+                    int j=0;
+                    //erase from queue and readd into queue
+                    for(j=0; j<nodeQueue.size(); ++j)
+                    {
+                        if(nodeQueue[j] == id_next)
+                        {
+                            nodeQueue.erase(nodeQueue.begin()+j);
+                            insertSortByDistTotal(id_next, nodeQueue);
+//                            cout <<"after insert dealed node"<<endl;
+//                            testShowQueue(nodeQueue);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void FindPathSRM::insertSortByDistTotal(int _id, vector<int> &_nodeQueue)
+{
+    if(_nodeQueue.empty())
+    {
+        _nodeQueue.push_back(_id);
+    }
+    else if(pNode[_id].distTotal > pNode[_nodeQueue[0]].distTotal)
+    {
+        _nodeQueue.insert(_nodeQueue.begin(), _id);
+    }
+    else if(pNode[_id].distTotal < pNode[_nodeQueue[_nodeQueue.size()-1]].distTotal)
+    {
+        _nodeQueue.push_back(_id);
+    }
+    else
+    {
+        int _start=0, _end=_nodeQueue.size()-1, half=0;
+        while((_end-_start)>1)
+        {
+            half = (_end+_start) / 2;
+            if(pNode[_id].distTotal > pNode[_nodeQueue[half]].distTotal)
+            {
+                _end = half;
+            }
+            else
+            {
+                _start = half;
+            }
+        }
+        _nodeQueue.insert(_nodeQueue.begin()+_end, _id);
+    }
+}
+
+void FindPathSRM::testShowNode()
+{
+    for(int i=0; i<pNode.size(); ++i)
+    {
+        cout << "~~node number:" << i << endl << " links:";
+        for(int j=0; j<pNode[i].id_link.size(); ++j)
+        {
+            cout << pNode[i].id_link[j] << " ";
+        }
+        cout << endl;
+    }
+}
+
+void FindPathSRM::testShowQueue(vector<int> &vec)
+{
+    cout << "queue:";
+    for(int i=0; i<vec.size(); ++i)
+    {
+        cout << vec[i] << " ";
+    }
+    cout << endl;
+    cout << "distTotal:";
+    for(int i=0; i<vec.size(); ++i)
+    {
+        cout << pNode[vec[i]].distTotal <<" ";
+    }
+    cout <<endl;
 }

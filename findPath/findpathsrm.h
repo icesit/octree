@@ -20,16 +20,20 @@ public:
     PathNode(float _x, float _y, float _z, int _id);
     ~PathNode();
     void setxyzid(float _x, float _y, float _z, int _id);
-    void addLink(int _id_link);
-private:
-    float x, y, z;
-    //link between this node and the other node
-    vector<int> id_link;
-    //location in the queue
-    int id_self;
+    void addLink(int _id_link, float _dist);
     //for A star or Dijkstra
     float distTilNow, distToEnd, distTotal;
     int id_fromWhere;
+    //link between this node and the other node
+    vector<int> id_link;
+    //store distance between node
+    vector<float> dist_link;
+    //flag represent wether the node is dealed
+    bool isDealed;
+private:
+    float x, y, z;
+    //location in the queue
+    int id_self;
 };
 
 class FindPathSRM
@@ -38,14 +42,17 @@ public:
     FindPathSRM(float _startx, float _starty, float _startz,
                 float _endx, float _endy, float _endz, bool _isview);
     ~FindPathSRM();
+
+    //find path
     bool findPath();
+    //display point cloud
     void display();
 private:
     //the start and end position
     pcl::PointXYZRGB startP, endP;
     //nearest node from start/end position
     int id_startNode, id_endNode;
-    //path
+    //id of node along path, link is (end position)<-(path.begin)<-(path.end)<-(start position)
     vector<int> path;
     vector<PathNode> pNode;
     //from keyframehandle for view, keyPosPC<->denkeyfPC, keyPosLink<->denkeyfLine
@@ -76,6 +83,17 @@ private:
     //find start and end node
     template <typename Distance>
     bool findStartEndNode();
+    //a star
+    template <typename Distance>
+    void astar();
+    //insert and sort path node in queue by distTotal, large at end, small at begin
+    void insertSortByDistTotal(int _id, vector<int> &_nodeQueue);
+
+    //for test
+    //show node
+    void testShowNode();
+    //show queue
+    void testShowQueue(vector<int> &vec);
 };
 
 
