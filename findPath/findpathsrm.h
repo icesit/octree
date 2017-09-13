@@ -64,6 +64,8 @@ private:
     //for pcl viewer
     int v1;
     bool isview;
+    //for time
+    int64_t time_begin, time_end;
 
     //read file and reconstruct node graph
     void reconstructGraph();
