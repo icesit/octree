@@ -9,11 +9,16 @@ int main(int argc, char** argv)
     }
     std::string mappointfilename = argv[1];
     std::string keyframefilename = argv[2];
+    int64_t begin, end;
+    begin = clock();
     KeyFrameHandler kfh(mappointfilename, keyframefilename);
 
     kfh.dealKeyFrame();
     kfh.saveResult();
+
+    end = clock();
+    double search_time = ((double)(end - begin) / CLOCKS_PER_SEC);
+    cout << "total deal time: " << search_time << " seconds." <<endl;
     kfh.display();
-    
     return 1;
 }

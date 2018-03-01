@@ -376,9 +376,9 @@ void FindPathSRM::astar()
                 pNode[id_next].distTilNow = pNode[id_now].distTotal
                         + pNode[id_now].dist_link[i];
                 pNode[id_next].id_fromWhere = id_now;
-                pNode[id_next].distToEnd = Distance::sqrt(
+                pNode[id_next].distToEnd = 0;/*Distance::sqrt(
                         Distance::compute(
-                            keyPosPC->points[id_startNode], keyPosPC->points[id_endNode]));
+                            keyPosPC->points[id_startNode], keyPosPC->points[id_endNode]));*/
                 pNode[id_next].distTotal = pNode[id_next].distToEnd
                         + pNode[id_next].distTilNow;
                 pNode[id_next].isDealed = true;

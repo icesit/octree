@@ -36,8 +36,11 @@ public:
 private:
   //store map points pos
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr mapPC;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr mapPCorigin;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr mapPCfinal;
   //octree of map point
   unibn::Octree<pcl::PointXYZRGB> mapOct;
+  unibn::Octree<pcl::PointXYZRGB> mapOctfinal;
   float mappointSparse;
   //store keyframe pos
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr keyfPC;
@@ -51,6 +54,8 @@ private:
   //for pcl viewer
   int v1, v2;
   bool isview;
+  //remove area
+  vector< vector<float> > removeMappointArea;
 
   //read map points to mapPC
   void readMapPt(const string &mpfile);
@@ -58,6 +63,8 @@ private:
   void readKeyFrame(const string &kffile);
   //read parameters from file
   void readParams();
+  //read the region where you want to remove mappoint
+  void readRemoveMapP();
   //init pcl viewer
   void initPclViewer();
   //for i=12345, change str(line00000) to str(line12345)
@@ -66,6 +73,8 @@ private:
   void findDenseKeyFrame();
   //line all the dense keyframe pos
   void lineDenseKeyFrame();
+  //kill wrong mappoint using keyframe
+  void killErrMapP();
 };
 
 #endif

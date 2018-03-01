@@ -1,15 +1,18 @@
 #include "keyframehandle.h"
 
 boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(32, false, 0.01f);
+const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(16, false, 0.01f);
 const unibn::OctreeParams& mapOctParams = unibn::OctreeParams(128, false, 0.02f);
 
 KeyFrameHandler::KeyFrameHandler(const string &mappointfile, const string &keyframefile):
     v1(0),v2(0),isview(true),topPercent(0.25),minKeyFdist(5.0),mappointSparse(0.35),
     mapPC(new pcl::PointCloud<pcl::PointXYZRGB>),
+    mapPCorigin(new pcl::PointCloud<pcl::PointXYZRGB>),
+    mapPCfinal(new pcl::PointCloud<pcl::PointXYZRGB>),
     keyfPC(new pcl::PointCloud<pcl::PointXYZRGB>),
     denkeyfPC(new pcl::PointCloud<pcl::PointXYZRGB>)
 {
+    readRemoveMapP();
     readMapPt(mappointfile);
     readKeyFrame(keyframefile);
     readParams();
@@ -23,6 +26,7 @@ KeyFrameHandler::~KeyFrameHandler()
 
 void KeyFrameHandler::dealKeyFrame()
 {
+    killErrMapP();
     findDenseKeyFrame();
     lineDenseKeyFrame();
 }
@@ -30,8 +34,8 @@ void KeyFrameHandler::dealKeyFrame()
 void KeyFrameHandler::display()
 {
     //display origin map point and keyframe
-    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> pchmapPC(mapPC);
-    viewer->addPointCloud<pcl::PointXYZRGB> (mapPC, pchmapPC, "origin map point cloud", v1);
+    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> pchmapPC(mapPCorigin);
+    viewer->addPointCloud<pcl::PointXYZRGB> (mapPCorigin, pchmapPC, "origin map point cloud", v1);
     viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "origin map point cloud", v1);
     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> pchkeyfPC(keyfPC);
     viewer->addPointCloud<pcl::PointXYZRGB> (keyfPC, pchkeyfPC, "origin keyframe cloud", v1);
@@ -46,7 +50,7 @@ void KeyFrameHandler::display()
     }
 
     //display dealed map point and keyframe pos
-    viewer->addPointCloud<pcl::PointXYZRGB> (mapPC, pchmapPC, "dealed map point cloud", v2);
+    viewer->addPointCloud<pcl::PointXYZRGB> (mapPCfinal, pchmapPC, "dealed map point cloud", v2);
     viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "dealed map point cloud", v2);
     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> pchdenkeyfPC(denkeyfPC);
     viewer->addPointCloud<pcl::PointXYZRGB> (denkeyfPC, pchdenkeyfPC, "dealed keyframe cloud", v2);
@@ -89,11 +93,11 @@ void KeyFrameHandler::saveResult()
     of1.close();
 
     ofstream of2("../Result/MapPointsPos.txt");
-    for(int i=0; i<mapPC->size(); ++i)
+    for(int i=0; i<mapPCfinal->size(); ++i)
     {
-        of2 << mapPC->points[i].x << " "
-            << mapPC->points[i].y << " "
-            << mapPC->points[i].z << endl;
+        of2 << mapPCfinal->points[i].x << " "
+            << mapPCfinal->points[i].y << " "
+            << mapPCfinal->points[i].z << endl;
     }
     of2.close();
 
@@ -107,6 +111,7 @@ void KeyFrameHandler::readMapPt(const string &mpfile)
     boost::char_separator<char> sep(" ");
     pcl::PointXYZRGB pt;
     float minx=3000, miny=3000,maxx=-3000,maxy=-3000, minz=3000, maxz=-3000;
+    bool skipthispoint = false;
     // read point cloud from "freiburg format"
     while (!in.eof())
     {
@@ -125,7 +130,26 @@ void KeyFrameHandler::readMapPt(const string &mpfile)
         pt.g = 0;
         pt.b = 0;
 
+        mapPCorigin->push_back(pt);
+
+        for(int i=0; i<removeMappointArea.size(); ++i)
+        {
+            if(pt.x > removeMappointArea[i][0] && pt.x < removeMappointArea[i][1] &&
+               pt.y > removeMappointArea[i][2] && pt.y < removeMappointArea[i][3] &&
+               pt.z > removeMappointArea[i][4] && pt.z < removeMappointArea[i][5]){
+                skipthispoint = true;
+                //break;
+            }
+        }
+
+        if(skipthispoint)
+        {
+            skipthispoint = false;
+            continue;
+        }
+
         mapPC->push_back(pt);
+        mapPCfinal->push_back(pt);
         if(pt.x < minx){
             minx = pt.x;
         }
@@ -207,6 +231,53 @@ void KeyFrameHandler::readKeyFrame(const string &kffile)
     in.close();
 }
 
+void KeyFrameHandler::readRemoveMapP()
+{
+    std::ifstream in("../examples/removeMapP.txt");
+    if(!in.is_open())
+    {
+        std::cout << "cannot read remove area file" <<std::endl;
+    }
+    std::string line;
+    boost::char_separator<char> sep(" ");
+    vector<float> tmp;
+    tmp.resize(6);
+    while (!in.eof())
+    {
+        std::getline(in, line);
+        in.peek();
+
+        boost::tokenizer<boost::char_separator<char> > tokenizer(line, sep);
+        std::vector<std::string> tokens(tokenizer.begin(), tokenizer.end());
+
+        if (tokens.size() != 6) continue;
+//        tmp.push_back( boost::lexical_cast<float>(tokens[0]));cout<<tmp[0]<<endl;
+//        tmp.push_back( boost::lexical_cast<float>(tokens[1]));cout<<tmp[1]<<endl;
+//        tmp.push_back( boost::lexical_cast<float>(tokens[2]));cout<<tmp[2]<<endl;
+//        tmp.push_back( boost::lexical_cast<float>(tokens[3]));cout<<tmp[3]<<endl;
+//        tmp.push_back( boost::lexical_cast<float>(tokens[4]));cout<<tmp[4]<<endl;
+//        tmp.push_back( boost::lexical_cast<float>(tokens[5]));cout<<tmp[5]<<endl;
+        tmp[0] = boost::lexical_cast<float>(tokens[0]);
+        tmp[1] = boost::lexical_cast<float>(tokens[1]);
+        tmp[2] = boost::lexical_cast<float>(tokens[2]);
+        tmp[3] = boost::lexical_cast<float>(tokens[3]);
+        tmp[4] = boost::lexical_cast<float>(tokens[4]);
+        tmp[5] = boost::lexical_cast<float>(tokens[5]);
+
+        removeMappointArea.push_back(tmp);
+    }
+    cout<<"here:"<<removeMappointArea[0].size()<<endl;
+
+    std::cout << "read remove area----->" <<removeMappointArea.size()<<" area."<<std::endl;
+    for(int i=0; i<removeMappointArea.size(); ++i)
+    {
+        std::cout << "x(" << removeMappointArea[i][0] << "," << removeMappointArea[i][1] <<"),"
+                  << "y(" << removeMappointArea[i][2] << "," << removeMappointArea[i][3] <<"),"
+                  << "z(" << removeMappointArea[i][4] << "," << removeMappointArea[i][5] <<"),"<<std::endl;
+    }
+    in.close();
+}
+
 void KeyFrameHandler::readParams()
 {
     cv::FileStorage fs("../examples/aParamForKeyframeHandle.yaml", cv::FileStorage::READ);
@@ -264,7 +335,9 @@ void KeyFrameHandler::lineDenseKeyFrame()
     {
         for(int j=i+1; j<denkeyfPC->size(); ++j)
         {
-            if( !mapOct.isBlock<unibn::L2Distance<pcl::PointXYZRGB> >(denkeyfPC->points[i], denkeyfPC->points[j], mappointSparse) )
+            double _dist2 = pow(denkeyfPC->points[i].x-denkeyfPC->points[j].x, 2) + pow(denkeyfPC->points[i].y-denkeyfPC->points[j].y, 2);
+            //here is a param
+            if( (_dist2 < 6) && (!mapOctfinal.isBlock<unibn::L2Distance<pcl::PointXYZRGB> >(denkeyfPC->points[i], denkeyfPC->points[j], mappointSparse)) )
             {
                 a[0] = i;
                 a[1] = j;
@@ -273,4 +346,33 @@ void KeyFrameHandler::lineDenseKeyFrame()
         }
     }
     cout << "dense keyframe line number:" << denkeyfLine.size() << endl;
+}
+
+void KeyFrameHandler::killErrMapP()
+{
+    std::vector<uint32_t> results, allPointToKill;
+    //find all points along keyframe path
+    for(int i=0; i < keyfPC->size(); ++i)
+    {
+        mapOct.radiusNeighbors<unibn::L2Distance<pcl::PointXYZRGB> >(keyfPC->points[i], 0.25f, results);
+        allPointToKill.insert(allPointToKill.end(), results.begin(), results.end());
+    }
+    //stamp points
+    for(int i=0; i<allPointToKill.size(); ++i)
+    {
+        mapPCfinal->points[allPointToKill[i]].x = 0;
+        mapPCfinal->points[allPointToKill[i]].y = 0;
+        mapPCfinal->points[allPointToKill[i]].z = 0;
+    }
+    //remove points
+    for(int i=0; i<mapPCfinal->size(); ++i)
+    {
+        if(fabs(mapPCfinal->points[i].x) + fabs(mapPCfinal->points[i].y) + fabs(mapPCfinal->points[i].z) < 0.01)
+        {
+            mapPCfinal->points.erase(mapPCfinal->points.begin()+i);
+            --i;
+        }
+    }
+
+    mapOctfinal.initialize(mapPCfinal->points, mapOctParams);
 }
