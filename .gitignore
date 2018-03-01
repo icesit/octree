@@ -2,3 +2,6 @@
 .cproject
 .project
 build
+bin
+examples/removeMapP.txt
+*).txt
