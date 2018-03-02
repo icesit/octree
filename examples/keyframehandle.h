@@ -51,6 +51,7 @@ private:
   vector< vector<int> > denkeyfLine;
   float topPercent;
   float minKeyFdist;
+  float maxlinkdist;
   //for pcl viewer
   int v1, v2;
   bool isview;

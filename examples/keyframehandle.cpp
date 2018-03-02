@@ -1,11 +1,11 @@
 #include "keyframehandle.h"
 
 boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(16, false, 0.01f);
+const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(32, false, 0.01f);//16 for lab,32 for sim
 const unibn::OctreeParams& mapOctParams = unibn::OctreeParams(128, false, 0.02f);
 
 KeyFrameHandler::KeyFrameHandler(const string &mappointfile, const string &keyframefile):
-    v1(0),v2(0),isview(true),topPercent(0.25),minKeyFdist(5.0),mappointSparse(0.35),
+    v1(0),v2(0),isview(true),topPercent(0.25),minKeyFdist(5.0),mappointSparse(0.35), maxlinkdist(6.0),
     mapPC(new pcl::PointCloud<pcl::PointXYZRGB>),
     mapPCorigin(new pcl::PointCloud<pcl::PointXYZRGB>),
     mapPCfinal(new pcl::PointCloud<pcl::PointXYZRGB>),
@@ -290,10 +290,12 @@ void KeyFrameHandler::readParams()
     fs["topPercent"] >> topPercent;
     fs["minKeyFdist"] >> minKeyFdist;
     fs["mappointSparse"] >> mappointSparse;
+    fs["maxlinkdist"] >> maxlinkdist;
     cout << "read parameters----->" << endl
          << "  topPercent:" << topPercent << endl
          << "  minKeyFdist:" << minKeyFdist << endl
-         << "  mappointSparse:" << mappointSparse <<endl;
+         << "  mappointSparse:" << mappointSparse <<endl
+         << "  maxlinkdist:" << maxlinkdist <<endl;
 }
 
 void KeyFrameHandler::initPclViewer()
@@ -337,7 +339,7 @@ void KeyFrameHandler::lineDenseKeyFrame()
         {
             double _dist2 = pow(denkeyfPC->points[i].x-denkeyfPC->points[j].x, 2) + pow(denkeyfPC->points[i].y-denkeyfPC->points[j].y, 2);
             //here is a param
-            if( (_dist2 < 6) && (!mapOctfinal.isBlock<unibn::L2Distance<pcl::PointXYZRGB> >(denkeyfPC->points[i], denkeyfPC->points[j], mappointSparse)) )
+            if( (_dist2 < maxlinkdist) && (!mapOctfinal.isBlock<unibn::L2Distance<pcl::PointXYZRGB> >(denkeyfPC->points[i], denkeyfPC->points[j], mappointSparse)) )
             {
                 a[0] = i;
                 a[1] = j;

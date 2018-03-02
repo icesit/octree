@@ -1,21 +1,31 @@
 %YAML:1.0
-topPercent: 1
-minKeyFdist: 1
-mappointSparse: 0.1
-
+topPercent: 0.4
+minKeyFdist: 8.0
+mappointSparse: 0.5
+maxlinkdist: 520
 
 ##good params
 #dust1,zone0
 #topPercent: 0.25
 #minKeyFdist: 5.0
 #mappointSparse: 0.3
+#maxlinkdist: 520
 #
 #dust1,zone1
 #topPercent: 0.4
 #minKeyFdist: 8.0
 #mappointSparse: 0.5
+#maxlinkdist: 520
 #
 #glassroom,1
 #topPercent: 1
 #minKeyFdist: 0.6
 #mappointSparse: 0.1
+#
+#lab
+#topPercent: 1
+#minKeyFdist: 1
+#mappointSparse: 0.1
+#maxlinkdist: 6
+
+
