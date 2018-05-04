@@ -831,8 +831,15 @@ void Octree<PointT, ContainerT>::rankDenseGrid(ContainerT &rankTop, float topPer
 {
     int num_of_rank = num_of_leaf * topPercent;
     std::vector<float> density;
+//    PointT ooo;
+//    ooo.x = 0;
+//    ooo.y = 0;
+//    ooo.z = 100000;
+//    rankTop.push_back(ooo);
+//    density.push_back(0);
     pickDenseGrid<unibn::L2Distance<PointT> >(rankTop, density, num_of_rank, mindist, root_);
-    std::cout << "top density:" << density[0]
+    std::cout << "num of leaf is:" << num_of_leaf
+              << ",top density:" << density[0]
               << ",bottom density:" << density[density.size()-1] << std::endl;
 }
 
@@ -876,7 +883,7 @@ void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector
         pt.x = _node->rx;
         pt.y = _node->ry;
         pt.z = _node->rz;
-        if(end<0)   // nothing in vector
+        if(den.empty())   // nothing in vector
         {
             den.push_back(dens);
             _rankTop.push_back(pt);
@@ -911,11 +918,12 @@ void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector
             */
             //this is density, distance
             float dist;
-            for(int i=0; i<den.size(); ++i)
+            int i=0;
+            for(; i<den.size(); ++i)
             {
                 dist = Distance::compute(pt, _rankTop[i]);
                 if(dist < _mindist) break;
-                if(dens > den[i])
+                if(dens >= den[i])
                 {
                     int j=i+1;
                     for(; j<den.size(); ++j)
@@ -930,6 +938,11 @@ void Octree<PointT, ContainerT>::pickDenseGrid(ContainerT &_rankTop, std::vector
                     }
                     break;
                 }
+            }
+            //if this point is not inserted and not enough points in queue
+            if(i >= den.size() && den.size() <= _num_of_rank){
+                den.push_back(dens);
+                _rankTop.push_back(pt);
             }
             //if too much pos, delete last one
             if(den.size() > _num_of_rank)

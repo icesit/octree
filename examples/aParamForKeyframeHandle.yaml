@@ -1,8 +1,14 @@
 %YAML:1.0
-topPercent: 0.4
-minKeyFdist: 8.0
-mappointSparse: 0.5
-maxlinkdist: 520
+topPercent: 1
+minKeyFdist: 0.5
+mappointSparse: 0.3
+maxlinkdist: 25
+
+#statemetnt
+#topPercent: choose how many points of total, 0~1
+#minKeyFdist: minimum keypose distance
+#mappointSparse: radius of obstacle detect circle
+#maxlinkdist: pow of max link distance
 
 ##good params
 #dust1,zone0
@@ -27,5 +33,18 @@ maxlinkdist: 520
 #minKeyFdist: 1
 #mappointSparse: 0.1
 #maxlinkdist: 6
+#
+#lab_orb_new
+#topPercent: 1
+#minKeyFdist: 1
+#mappointSparse: 0.15
+#maxlinkdist: 7
+#
+#lidar_cartographer
+#lab
+#topPercent: 1
+#minKeyFdist: 0.5
+#mappointSparse: 0.3
+#maxlinkdist: 25
 
 

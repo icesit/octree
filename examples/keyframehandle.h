@@ -20,6 +20,10 @@
 
 #include <opencv2/core/core.hpp>
 
+//0 ORB-SLAM
+//1 CARTOGRAPHER
+#define DEALMODE 1
+
 using namespace std;
 
 class KeyFrameHandler
@@ -76,6 +80,8 @@ private:
   void lineDenseKeyFrame();
   //kill wrong mappoint using keyframe
   void killErrMapP();
+  //find all points along keyframe
+  void findPointAlongTwoPos(std::vector<uint32_t>& results, pcl::PointXYZRGB p1, pcl::PointXYZRGB p2);
 };
 
 #endif

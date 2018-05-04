@@ -1,7 +1,7 @@
 #include "keyframehandle.h"
 
 boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(32, false, 0.01f);//16 for lab,32 for sim
+const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(12, false, 0.01f);//16 for lab,32 for sim,12 for lidar
 const unibn::OctreeParams& mapOctParams = unibn::OctreeParams(128, false, 0.02f);
 
 KeyFrameHandler::KeyFrameHandler(const string &mappointfile, const string &keyframefile):
@@ -123,9 +123,18 @@ void KeyFrameHandler::readMapPt(const string &mpfile)
         std::vector<std::string> tokens(tokenizer.begin(), tokenizer.end());
         //cout << "read mappoint2" << tokens.size() << endl;
         if (tokens.size() != 3) continue;
+        if(DEALMODE == 0){
+        //orbslam
         pt.x = boost::lexical_cast<float>(tokens[2]);
         pt.y = - boost::lexical_cast<float>(tokens[0]);
         pt.z = - boost::lexical_cast<float>(tokens[1]);
+        }
+        else if(DEALMODE == 1){
+        //cartographer
+        pt.x = boost::lexical_cast<float>(tokens[0]);
+        pt.y = boost::lexical_cast<float>(tokens[1]);
+        pt.z = boost::lexical_cast<float>(tokens[2]);
+        }
         pt.r = 255;
         pt.g = 0;
         pt.b = 0;
@@ -195,9 +204,18 @@ void KeyFrameHandler::readKeyFrame(const string &kffile)
         std::vector<std::string> tokens(tokenizer.begin(), tokenizer.end());
 
         if (tokens.size() != 8) continue;
+        if(DEALMODE == 0){
+        //orbslam
         pt.x = boost::lexical_cast<float>(tokens[3]);
         pt.y = - boost::lexical_cast<float>(tokens[1]);
         pt.z = - boost::lexical_cast<float>(tokens[2]);
+        }
+        else if(DEALMODE == 1){
+        //cartographer
+        pt.x = boost::lexical_cast<float>(tokens[1]);
+        pt.y = boost::lexical_cast<float>(tokens[2]);
+        pt.z = boost::lexical_cast<float>(tokens[3]);
+        }
         pt.r = 0;
         pt.g = 0;
         pt.b = 255;
@@ -266,7 +284,7 @@ void KeyFrameHandler::readRemoveMapP()
 
         removeMappointArea.push_back(tmp);
     }
-    cout<<"here:"<<removeMappointArea[0].size()<<endl;
+    //cout<<"here:"<<removeMappointArea[0].size()<<endl;
 
     std::cout << "read remove area----->" <<removeMappointArea.size()<<" area."<<std::endl;
     for(int i=0; i<removeMappointArea.size(); ++i)
@@ -326,7 +344,12 @@ void KeyFrameHandler::setstring(string &str, int k)
 void KeyFrameHandler::findDenseKeyFrame()
 {
     //vector<float*> rank_dense_Keyf;
+    //if(DEALMODE == 0){
     keyfOct.rankDenseGrid(denkeyfPC->points, topPercent, minKeyFdist);
+    //}
+    //else if(DEALMODE == 1){
+    //    denkeyfPC = keyfPC;
+    //}
     cout << "dense keyframe pos number:" << denkeyfPC->size() << endl;
 }
 
@@ -354,9 +377,13 @@ void KeyFrameHandler::killErrMapP()
 {
     std::vector<uint32_t> results, allPointToKill;
     //find all points along keyframe path
-    for(int i=0; i < keyfPC->size(); ++i)
+    for(int i=1; i < keyfPC->size(); ++i)
     {
-        mapOct.radiusNeighbors<unibn::L2Distance<pcl::PointXYZRGB> >(keyfPC->points[i], 0.25f, results);
+        if(fabs(keyfPC->points[i].x - keyfPC->points[i-1].y) > 2 || fabs(keyfPC->points[i].y - keyfPC->points[i-1].y) > 2){
+            continue;
+        }
+        //mapOct.radiusNeighbors<unibn::L2Distance<pcl::PointXYZRGB> >(keyfPC->points[i], 0.25f, results);
+        findPointAlongTwoPos(results, keyfPC->points[i], keyfPC->points[i-1]);
         allPointToKill.insert(allPointToKill.end(), results.begin(), results.end());
     }
     //stamp points
@@ -377,4 +404,23 @@ void KeyFrameHandler::killErrMapP()
     }
 
     mapOctfinal.initialize(mapPCfinal->points, mapOctParams);
+}
+
+void KeyFrameHandler::findPointAlongTwoPos(std::vector<uint32_t>& results, pcl::PointXYZRGB p1, pcl::PointXYZRGB p2){
+    if((pow(p1.x-p2.x, 2) + pow(p1.y-p2.y, 2) + pow(p1.z-p2.z, 2)) > 0.25){
+        pcl::PointXYZRGB mid;
+        mid.x = (p1.x + p2.x) / 2;
+        mid.y = (p1.y + p2.y) / 2;
+        mid.z = (p1.z + p2.z) / 2;
+        findPointAlongTwoPos(results, mid, p1);
+        findPointAlongTwoPos(results, mid, p2);
+    }
+    else{
+        std::vector<uint32_t> _res;
+        mapOct.radiusNeighbors<unibn::L2Distance<pcl::PointXYZRGB> >(p1, 0.25f, _res);
+        results.insert(results.end(), _res.begin(), _res.end());
+        _res.clear();
+        mapOct.radiusNeighbors<unibn::L2Distance<pcl::PointXYZRGB> >(p2, 0.25f, _res);
+        results.insert(results.end(), _res.begin(), _res.end());
+    }
 }
