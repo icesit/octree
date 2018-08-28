@@ -13,7 +13,7 @@ int main(int argc, char** argv)
     FindPathSRM fpsrm((float)atof(argv[1]), (float)atof(argv[2]), (float)atof(argv[3]),
             (float)atof(argv[4]), (float)atof(argv[5]), (float)atof(argv[6]), true);
 
-    fpsrm.findPath();
+    //fpsrm.findPath();
     te = clock();
     cout << "total time(including read file and construct graph):" << ((double)(te - ts) / CLOCKS_PER_SEC) << endl;
     fpsrm.display();

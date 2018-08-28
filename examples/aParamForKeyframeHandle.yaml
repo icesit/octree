@@ -1,8 +1,10 @@
 %YAML:1.0
+# mode, 0-orb, 1-cartographer
+DEALMODE: 1
 topPercent: 1
 minKeyFdist: 0.5
-mappointSparse: 0.3
-maxlinkdist: 25
+mappointSparse: 0.25
+maxlinkdist: 3.4
 
 #statemetnt
 #topPercent: choose how many points of total, 0~1
@@ -44,7 +46,7 @@ maxlinkdist: 25
 #lab
 #topPercent: 1
 #minKeyFdist: 0.5
-#mappointSparse: 0.3
-#maxlinkdist: 25
+#mappointSparse: 0.25
+#maxlinkdist: 3.4
 
 

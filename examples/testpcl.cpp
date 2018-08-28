@@ -235,15 +235,15 @@ int main(int argc, char** argv)
     //test find points in ball
     begin = clock();
     std::vector<uint32_t> results;
-    for(int i=0; i<27; ++i){
+    for(int i=0; i<1800; ++i){
     pcl::PointXYZRGB& tmp = pCloud->points[i];
-    octree.radiusNeighbors<unibn::L2Distance<pcl::PointXYZRGB> >(tmp, 5.0f, results);
+    octree.radiusNeighbors<unibn::L2Distance<pcl::PointXYZRGB> >(tmp, 1.0f, results);
     }
     end = clock();
     search_time = ((double)(end - begin) / CLOCKS_PER_SEC);
 //    std::cout << results.size() << " radius neighbors (r = 5.0m) found for ("
 //              << tmp.x << ", " << tmp.y << "," << tmp.z << ")" << std::endl;
-    std::cout << "Searching for all radius neighbors (r = 5.0m) took "
+    std::cout << "Searching for all radius neighbors (r = 1.0m) took "
               << search_time << " seconds." << std::endl;
 
     //test find occupied block in ball

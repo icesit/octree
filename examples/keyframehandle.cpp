@@ -4,6 +4,44 @@ boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualizat
 const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(12, false, 0.01f);//16 for lab,32 for sim,12 for lidar
 const unibn::OctreeParams& mapOctParams = unibn::OctreeParams(128, false, 0.02f);
 
+template<typename PointT>
+double calDist2(PointT a, PointT b){
+    return ((a.x-b.x)^2 + (a.y-b.y)^2 + (a.z-b.z)^2);
+}
+
+PathNode::PathNode(float _x, float _y, float _z, int _id):
+    x(_x),y(_y),z(_z),id_self(_id), id_fromWhere(-1), isDealed(false),
+    distTilNow(-1), distToEnd(-1), distTotal(-1)
+{}
+
+PathNode::~PathNode()
+{}
+
+void PathNode::setxyzid(float _x, float _y, float _z, int _id)
+{
+    x = _x;
+    y = _y;
+    z = _z;
+    id_self = _id;
+}
+
+void PathNode::addLink(int _id_link, float _dist)
+{
+    id_link.push_back(_id_link);
+    dist_link.push_back(_dist);
+}
+
+void PathNode::removeLink(int _id_link)
+{
+    for(int i=0; i<id_link.size(); ++i){
+        if(_id_link == id_link[i]){
+            id_link.erase(id_link.begin()+i);
+            dist_link.erase(dist_link.begin()+i);
+            break;
+        }
+    }
+}
+
 KeyFrameHandler::KeyFrameHandler(const string &mappointfile, const string &keyframefile):
     v1(0),v2(0),isview(true),topPercent(0.25),minKeyFdist(5.0),mappointSparse(0.35), maxlinkdist(6.0),
     mapPC(new pcl::PointCloud<pcl::PointXYZRGB>),
@@ -12,10 +50,10 @@ KeyFrameHandler::KeyFrameHandler(const string &mappointfile, const string &keyfr
     keyfPC(new pcl::PointCloud<pcl::PointXYZRGB>),
     denkeyfPC(new pcl::PointCloud<pcl::PointXYZRGB>)
 {
+    readParams();
     readRemoveMapP();
     readMapPt(mappointfile);
     readKeyFrame(keyframefile);
-    readParams();
     keyfOct.initialize(keyfPC->points, keyfOctParams);
     mapOct.initialize(mapPC->points, mapOctParams);
     initPclViewer();
@@ -29,6 +67,7 @@ void KeyFrameHandler::dealKeyFrame()
     killErrMapP();
     findDenseKeyFrame();
     lineDenseKeyFrame();
+    //removeRedundantLine();
 }
 
 void KeyFrameHandler::display()
@@ -305,11 +344,13 @@ void KeyFrameHandler::readParams()
              << "default parameters are used!" << endl;
         return;
     }
+    fs["DEALMODE"] >> DEALMODE;
     fs["topPercent"] >> topPercent;
     fs["minKeyFdist"] >> minKeyFdist;
     fs["mappointSparse"] >> mappointSparse;
     fs["maxlinkdist"] >> maxlinkdist;
     cout << "read parameters----->" << endl
+         << "  DEALMODE:" << DEALMODE << endl
          << "  topPercent:" << topPercent << endl
          << "  minKeyFdist:" << minKeyFdist << endl
          << "  mappointSparse:" << mappointSparse <<endl
@@ -372,6 +413,43 @@ void KeyFrameHandler::lineDenseKeyFrame()
     }
     cout << "dense keyframe line number:" << denkeyfLine.size() << endl;
 }
+
+/*
+//not easy to do, change to python for this function
+void KeyFrameHandler::removeRedundantLine()
+{
+    PathNode pn(0,0,0,0);
+    vector<PathNode> pNode;
+    //make nodes
+    for(int i=0; i<denkeyfPC->size(); ++i){
+        pn.setxyzid(denkeyfPC->points[i].x, denkeyfPC->points[i].y, denkeyfPC->points[i].z, i);
+        pNode.push_back(pn);
+    }
+    //make links
+    for(int i=0; i<denkeyfLine.size(); ++i){
+        int m = denkeyfLine[i][0];
+        int n = denkeyfLine[i][1];
+        double dist = calDist2(denkeyfPC->points[m], denkeyfPC->points[n]);
+        pNode[m].addLink(n, dist);
+        pNode[n].addLink(m, dist);
+    }
+    //vector< vector<int> >
+    //remove links
+    for(int i=0; i<pNode.size(); ++i){
+        if(pNode[i].id_link.size() <= 2){
+            continue;
+        }
+        else{
+            //see if loop between three nodes(i,j,k)
+            for(int j=0; j<pNode[i].id_link.size(); ++j){
+                int jnode_id = pNode[i].id_link[j];
+                for(int k=j+1; k<<pNode[i].id_link.size(); ++k){
+                    int knode_id = pNode[i].id_link[k];
+                }
+            }
+        }
+    }
+}*/
 
 void KeyFrameHandler::killErrMapP()
 {

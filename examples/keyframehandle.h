@@ -22,9 +22,32 @@
 
 //0 ORB-SLAM
 //1 CARTOGRAPHER
-#define DEALMODE 1
+//#define DEALMODE 1
 
 using namespace std;
+
+class PathNode
+{
+public:
+    PathNode(float _x, float _y, float _z, int _id);
+    ~PathNode();
+    void setxyzid(float _x, float _y, float _z, int _id);
+    void addLink(int _id_link, float _dist);
+    void removeLink(int _id_link);
+    //for A star or Dijkstra
+    float distTilNow, distToEnd, distTotal;
+    int id_fromWhere;
+    //link between this node and the other node
+    vector<int> id_link;
+    //store distance between node
+    vector<float> dist_link;
+    //flag represent wether the node is dealed
+    bool isDealed;
+private:
+    float x, y, z;
+    //location in the queue
+    int id_self;
+};
 
 class KeyFrameHandler
 {
@@ -38,6 +61,7 @@ public:
   //save keyframe position and link relation
   void saveResult();
 private:
+  int DEALMODE;
   //store map points pos
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr mapPC;
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr mapPCorigin;
@@ -78,6 +102,8 @@ private:
   void findDenseKeyFrame();
   //line all the dense keyframe pos
   void lineDenseKeyFrame();
+  //remove redundant lines
+  //void removeRedundantLine();
   //kill wrong mappoint using keyframe
   void killErrMapP();
   //find all points along keyframe

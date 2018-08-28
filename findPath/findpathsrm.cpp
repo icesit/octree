@@ -193,7 +193,7 @@ void FindPathSRM::readPoint()
 
 void FindPathSRM::readLink()
 {
-    std::ifstream in("../Result/denKeyfPosRelation.txt");
+    std::ifstream in("../Result/denKeyfPosRelation1.txt");
     std::string line;
     boost::char_separator<char> sep(" ");
     int i,j;
