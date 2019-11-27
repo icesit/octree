@@ -1,7 +1,7 @@
 #include "keyframehandle.h"
 
 boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(12, false, 0.01f);//16 for lab,32 for sim,12 for lidar
+const unibn::OctreeParams& keyfOctParams = unibn::OctreeParams(4, false, 0.005f);//16 for lab,32 for sim,12 for lidar
 const unibn::OctreeParams& mapOctParams = unibn::OctreeParams(128, false, 0.02f);
 
 template<typename PointT>

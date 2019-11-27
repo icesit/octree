@@ -21,6 +21,9 @@ public:
     ~PathNode();
     void setxyzid(float _x, float _y, float _z, int _id);
     void addLink(int _id_link, float _dist);
+    void print(){
+        cout<<x<<" "<<y<<" "<<z<<endl;
+    }
     //for A star or Dijkstra
     float distTilNow, distToEnd, distTotal;
     int id_fromWhere;
@@ -87,7 +90,7 @@ private:
     bool findStartEndNode();
     //a star
     template <typename Distance>
-    void astar();
+    bool astar();
     //insert and sort path node in queue by distTotal, large at end, small at begin
     void insertSortByDistTotal(int _id, vector<int> &_nodeQueue);
 

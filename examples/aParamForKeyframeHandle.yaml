@@ -2,9 +2,9 @@
 # mode, 0-orb, 1-cartographer
 DEALMODE: 0
 topPercent: 1
-minKeyFdist: 0.5
-mappointSparse: 0.05
-maxlinkdist: 7
+minKeyFdist: 1
+mappointSparse: 0.3
+maxlinkdist: 14
 
 #statemetnt
 #topPercent: choose how many points of total, 0~1
@@ -49,4 +49,15 @@ maxlinkdist: 7
 #mappointSparse: 0.25
 #maxlinkdist: 3.4
 
+#sim lidar
+#topPercent: 1
+#minKeyFdist: 1
+#mappointSparse: 0.25
+#maxlinkdist: 9
+
+#sim rob
+#topPercent: 1
+#minKeyFdist: 1
+#mappointSparse: 0.3
+#maxlinkdist: 14
 

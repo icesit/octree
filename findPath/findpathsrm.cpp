@@ -113,6 +113,10 @@ void FindPathSRM::display()
                 viewer->addLine(keyPosPC->points[path[j]], keyPosPC->points[path[j+1]], 200, 0, 200, pli, v1);
             }
             cout << path[path.size()-1] << endl;
+            for(int j=path.size()-1; j>=0; --j)
+            {
+                pNode[path[j]].print();
+            }
         }
 
     }
@@ -326,7 +330,7 @@ bool FindPathSRM::findStartEndNode()
 }
 
 template <typename Distance>
-void FindPathSRM::astar()
+bool FindPathSRM::astar()
 {
     vector<int> nodeQueue;
     //first node
@@ -342,6 +346,8 @@ void FindPathSRM::astar()
 
     int id_now, id_next, dealtime=0;
     float dtn_tmp;
+    cout<<"start find path."<<endl;
+    bool valid_path = false;
     while(!nodeQueue.empty())
     {
         if((++dealtime)>200)
@@ -351,7 +357,13 @@ void FindPathSRM::astar()
         }
 
         id_now = nodeQueue[nodeQueue.size()-1];
+//        cout<<"dealing node: "<<id_now<<", queuesize: "<<nodeQueue.size()
+//           <<endl;
 
+        if(id_now == id_endNode){
+            // end node is deal and path is found
+            valid_path = true;
+        }
 //        if(id_now == id_endNode)
 //        {
 //            while(id_now != id_startNode)
@@ -410,6 +422,10 @@ void FindPathSRM::astar()
             }
         }
     }
+    if(!valid_path){
+        cout<<"no valid path"<<endl;
+        return valid_path;
+    }
     //find all nodes
     id_now = id_endNode;
     while(id_now != id_startNode)
@@ -419,6 +435,7 @@ void FindPathSRM::astar()
     }
     path.push_back(id_startNode);
     cout << "Find path done!" << endl;
+    return valid_path;
 }
 
 void FindPathSRM::insertSortByDistTotal(int _id, vector<int> &_nodeQueue)
